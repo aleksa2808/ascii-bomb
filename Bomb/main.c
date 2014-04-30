@@ -1,4 +1,6 @@
 #include <curses.h>
+#include <stdlib.h>
+#include <time.h>
 #define M 15
 #define N 31
 
@@ -23,8 +25,10 @@ int main(void)
 {
 	/* ~Initialization~ */
 	WINDOW *game_win, *hud_win;
-	int i, j, x = 1, y = 1, ch;
+	int i, j, x = 1, y = 1, ch, mx, my;
 	char screen[M][N];
+
+	srand(time(0));
 
 	initscr();
 	cbreak();
@@ -36,6 +40,7 @@ int main(void)
 	init_pair(1, COLOR_GREEN, COLOR_GREEN);
 	init_pair(2, COLOR_BLUE, COLOR_BLUE);
 	init_pair(3, COLOR_BLACK | COLOR_WHITE, COLOR_BLACK | COLOR_WHITE);
+	init_pair(4, COLOR_RED, COLOR_RED);
 	
 	game_win = newwin(M + 1, N + 1, 2, 3);
 	keypad(game_win, TRUE);
@@ -73,6 +78,18 @@ int main(void)
 	/* Player 1 */
 	screen[x][y] = 1;
 
+	/* Destructibles */
+	for (i = 0; i < 120; i++)
+	{
+		do
+		{
+			my = rand()%(M - 2) + 1;
+			mx = rand()%(N - 2) + 1;
+		}
+		while (screen[my][mx] != 0);
+		screen[my][mx] = 3;
+	}
+
 	draw(screen, game_win);
 
 
@@ -85,7 +102,7 @@ int main(void)
 		{
 		case KEY_LEFT:
 		case 'a':
-			if (x && screen[y][x - 1] != 2) {
+			if (x && screen[y][x - 1] == 0) {
 				screen[y][x] = 0;
 				x--;
 				screen[y][x] = 1;
@@ -93,7 +110,7 @@ int main(void)
 			break;
 		case KEY_RIGHT:
 		case 'd':
-			if (x < N - 1 && screen[y][x + 1] != 2) {
+			if (x < N - 1 && screen[y][x + 1] == 0) {
 				screen[y][x] = 0;
 				x++;
 				screen[y][x] = 1;
@@ -101,7 +118,7 @@ int main(void)
 			break;
 		case KEY_UP:
 		case 'w':
-			if (y && screen[y - 1][x] != 2) {
+			if (y && screen[y - 1][x] == 0) {
 				screen[y][x] = 0;
 				y--;
 				screen[y][x] = 1;
@@ -109,7 +126,7 @@ int main(void)
 			break;
 		case KEY_DOWN:
 		case 's':
-			if (y < M - 1 && screen[y + 1][x] != 2) {
+			if (y < M - 1 && screen[y + 1][x] == 0) {
 				screen[y][x] = 0;
 				y++;
 				screen[y][x] = 1;

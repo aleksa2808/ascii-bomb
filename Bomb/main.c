@@ -1,67 +1,86 @@
 #include <curses.h>
-#include <Windows.h>
-#include <stdlib.h>
-#include <time.h>
-#define M 50
-#define N 79
+#define M 15
+#define N 31
 
-void draw(char screen[M][N])
+void draw(char screen[M][N], WINDOW *local_win)
 {
 	int i, j;
 
-	clear();
+	wclear(local_win);
 	for (i = 0; i < M; i++)
 	{
 		for (j = 0; j < N; j++)
 		{
-			attron(COLOR_PAIR(screen[i][j] + 1));
-			printw("%d", screen[i][j]);
-			attroff(COLOR_PAIR(screen[i][j] + 1));
+			wattron(local_win, COLOR_PAIR(screen[i][j] + 1));
+			wprintw(local_win, "%d", screen[i][j]);
+			wattroff(local_win, COLOR_PAIR(screen[i][j] + 1));
 		}
-		printw("\n");
+		wprintw(local_win, "\n");
 	}
-
 }
 
 int main(void)
 {
-	int i, j, x = 0, y = 0, ch, mx, my;
+	/* ~Initialization~ */
+	WINDOW *game_win, *hud_win;
+	int i, j, x = 1, y = 1, ch;
 	char screen[M][N];
 
-	initscr();			/* Start curses mode 		*/
-	raw();				/* Line buffering disabled	*/
-	keypad(stdscr, TRUE);		/* We get F1, F2 etc..		*/
-	noecho();			/* Don't echo() while we do getch */
+	initscr();
+	cbreak();
+	//keypad(stdscr, TRUE);
+	noecho();
 	curs_set(0);
-	start_color();			/* Start color 			*/
-	init_pair(2, COLOR_BLACK, COLOR_BLACK);
-	
+
+	start_color();
 	init_pair(1, COLOR_GREEN, COLOR_GREEN);
-	init_pair(3, COLOR_RED, COLOR_RED);
+	init_pair(2, COLOR_BLUE, COLOR_BLUE);
+	init_pair(3, COLOR_BLACK | COLOR_WHITE, COLOR_BLACK | COLOR_WHITE);
+	
+	game_win = newwin(M + 1, N + 1, 2, 3);
+	keypad(game_win, TRUE);
+	
+	hud_win = newwin(8, 30, 5, COLS - 40);
+	box(hud_win, 0, 0);
+	mvwprintw(hud_win, 3, 5, "Bomberman! \\(^_^)/");
+	wrefresh(hud_win);
+
+
+
+	/* ~Map creation~ */
+	/* Grass */
+	for (i = 0; i < M; i++)
+		for (j = 0; j < N; j++)
+			screen[i][j] = 0;
+
+	/* Borders */
 	for (i = 0; i < M; i++)
 	{
-		for (j = 0; j < N; j++)
-		{
-			screen[i][j] = 0;
-		}
+		screen[i][0] = 2;
+		screen[i][N - 1] = 2;
 	}
-
-	screen[x][y] = 1;
-
-	srand(time(0));
-	for (i = 0; i < 500; i++)
+	for (i = 0; i < N; i++)
 	{
-		my = rand()%50;
-		mx = rand()%79;
-		screen[my][mx]=2;
+		screen[0][i] = 2;
+		screen[M - 1][i] = 2;
 	}
 	
-	draw(screen);
+	/* Blocks */
+	for (i = 2; i < M - 1; i += 2)
+		for (j = 2; j < N - 1; j += 2)
+			screen[i][j]=2;
 
-	//time_t last = time(0);
+	/* Player 1 */
+	screen[x][y] = 1;
+
+	draw(screen, game_win);
+
+
+
+	/* ~The Game Loop!~ */
 	while (1)
 	{
-		ch = getch();
+		ch = wgetch(game_win);
 		switch (ch)
 		{
 		case KEY_LEFT:
@@ -96,17 +115,13 @@ int main(void)
 				screen[y][x] = 1;
 			}
 		}
-		
 
-		/*if (time(0) - last)
-		{
-			last = time(0);
-		}*/
-		//Sleep(20);
-		draw(screen);
+		draw(screen, game_win);
 	}
 	
-	endwin();			/* End curses mode		  */
 
+	/* ~Le End~ */
+	/* Reminder: Free your memory! */
+	endwin();
 	return 0;
 }

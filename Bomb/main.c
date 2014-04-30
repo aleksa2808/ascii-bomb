@@ -1,6 +1,7 @@
 #include <curses.h>
 #include <Windows.h>
 #include <stdlib.h>
+#include <time.h>
 #define M 50
 #define N 79
 
@@ -47,6 +48,7 @@ int main(void)
 
 	screen[x][y] = 1;
 
+	srand(time(0));
 	for (i = 0; i < 500; i++)
 	{
 		my = rand()%50;

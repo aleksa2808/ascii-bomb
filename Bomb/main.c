@@ -1,144 +1,97 @@
 #include <curses.h>
-#include <stdlib.h>
-#include <time.h>
-#define M 15
-#define N 31
+#define WIDTH 30
+#define HEIGHT 10 
 
-void draw(char screen[M][N], WINDOW *local_win)
-{
-	int i, j;
+int startx = 0;
+int starty = 0;
 
-	wclear(local_win);
-	for (i = 0; i < M; i++)
-	{
-		for (j = 0; j < N; j++)
-		{
-			wattron(local_win, COLOR_PAIR(screen[i][j] + 1));
-			wprintw(local_win, "%d", screen[i][j]);
-			wattroff(local_win, COLOR_PAIR(screen[i][j] + 1));
-		}
-		wprintw(local_win, "\n");
-	}
-}
+char *choices[] = { 
+			"Start game",
+			"*options*",
+			"bla bla",
+			"skkrdfa",
+			"Exit game"
+		  };
+int n_choices = sizeof(choices) / sizeof(char *);
+void print_menu(WINDOW *menu_win, int highlight);
 
-int main(void)
-{
-	/* ~Initialization~ */
-	WINDOW *game_win, *hud_win;
-	int i, j, x = 1, y = 1, ch, mx, my;
-	char screen[M][N];
+extern int game(void);
 
-	srand(time(0));
+int main()
+{	
+	WINDOW *menu_win;
+	int highlight = 1;
+	int choice = 0;
+	int c;
 
 	initscr();
-	cbreak();
-	//keypad(stdscr, TRUE);
 	noecho();
+	cbreak();
 	curs_set(0);
-
-	start_color();
-	init_pair(1, COLOR_GREEN, COLOR_GREEN);
-	init_pair(2, COLOR_BLUE, COLOR_BLUE);
-	init_pair(3, COLOR_BLACK | COLOR_WHITE, COLOR_BLACK | COLOR_WHITE);
-	init_pair(4, COLOR_RED, COLOR_RED);
-	
-	game_win = newwin(M + 1, N + 1, 2, 3);
-	keypad(game_win, TRUE);
-	
-	hud_win = newwin(8, 30, 5, COLS - 40);
-	box(hud_win, 0, 0);
-	mvwprintw(hud_win, 3, 5, "Bomberman! \\(^_^)/");
-	wrefresh(hud_win);
-
-
-
-	/* ~Map creation~ */
-	/* Grass */
-	for (i = 0; i < M; i++)
-		for (j = 0; j < N; j++)
-			screen[i][j] = 0;
-
-	/* Borders */
-	for (i = 0; i < M; i++)
-	{
-		screen[i][0] = 2;
-		screen[i][N - 1] = 2;
-	}
-	for (i = 0; i < N; i++)
-	{
-		screen[0][i] = 2;
-		screen[M - 1][i] = 2;
-	}
-	
-	/* Blocks */
-	for (i = 2; i < M - 1; i += 2)
-		for (j = 2; j < N - 1; j += 2)
-			screen[i][j]=2;
-
-	/* Player 1 */
-	screen[x][y] = 1;
-
-	/* Destructibles */
-	for (i = 0; i < 120; i++)
-	{
-		do
-		{
-			my = rand()%(M - 2) + 1;
-			mx = rand()%(N - 2) + 1;
-		}
-		while (screen[my][mx] != 0);
-		screen[my][mx] = 3;
-	}
-
-	draw(screen, game_win);
-
-
-
-	/* ~The Game Loop!~ */
-	while (1)
-	{
-		ch = wgetch(game_win);
-		switch (ch)
-		{
-		case KEY_LEFT:
-		case 'a':
-			if (x && screen[y][x - 1] == 0) {
-				screen[y][x] = 0;
-				x--;
-				screen[y][x] = 1;
-			}
-			break;
-		case KEY_RIGHT:
-		case 'd':
-			if (x < N - 1 && screen[y][x + 1] == 0) {
-				screen[y][x] = 0;
-				x++;
-				screen[y][x] = 1;
-			}
-			break;
+	startx = 5;
+	starty = 3;
+		
+	menu_win = newwin(HEIGHT, WIDTH, starty, startx);
+	keypad(menu_win, TRUE);
+	while(1)
+	{	
+		print_menu(menu_win, highlight);
+		c = wgetch(menu_win);
+		switch(c)
+		{	
 		case KEY_UP:
-		case 'w':
-			if (y && screen[y - 1][x] == 0) {
-				screen[y][x] = 0;
-				y--;
-				screen[y][x] = 1;
-			}
+			if(highlight == 1)
+				highlight = n_choices;
+			else
+				--highlight;
 			break;
 		case KEY_DOWN:
-		case 's':
-			if (y < M - 1 && screen[y + 1][x] == 0) {
-				screen[y][x] = 0;
-				y++;
-				screen[y][x] = 1;
-			}
+			if(highlight == n_choices)
+				highlight = 1;
+			else 
+				++highlight;
+			break;
+		case 10:
+			choice = highlight;
+			break;
 		}
 
-		draw(screen, game_win);
-	}
-	
+		switch(choice) 
+		{
+		case 1:
+			clear();
+			refresh();
+			game();
+			break;
+		case 5:
+			clrtoeol();
+			refresh();
+			endwin();
+			return 0;
+		}
+		choice = 0;
+	}	
 
-	/* ~Le End~ */
-	/* Reminder: Free your memory! */
-	endwin();
 	return 0;
+}
+
+
+void print_menu(WINDOW *menu_win, int highlight)
+{
+	int x, y, i;	
+
+	x = 2;
+	y = 2;
+	box(menu_win, 0, 0);
+	for(i = 0; i < n_choices; ++i)
+	{	if(highlight == i + 1)
+		{	wattron(menu_win, A_REVERSE); 
+			mvwprintw(menu_win, y, x, "%s", choices[i]);
+			wattroff(menu_win, A_REVERSE);
+		}
+		else
+			mvwprintw(menu_win, y, x, "%s", choices[i]);
+		++y;
+	}
+	wrefresh(menu_win);
 }

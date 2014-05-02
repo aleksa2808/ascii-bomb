@@ -1,9 +1,26 @@
 #include <curses.h>
 #include <stdlib.h>
-#include <time.h>
 
 extern void init_screen(int, int);
 extern void draw(char**);
+
+/* Random number generator :D */
+// period = 2^96-1
+static unsigned long x=123456789, y=362436069, z=521288629;
+unsigned long xorshf96(void) 
+{
+	unsigned long t;
+    x ^= x << 16;
+    x ^= x >> 5;
+    x ^= x << 1;
+
+    t = x;
+    x = y;
+    y = z;
+    z = t ^ x ^ y;
+
+	return z;
+}
 
 int game(void)
 {
@@ -18,10 +35,7 @@ int game(void)
 		screen[i] = (char*) malloc(n * sizeof(char));
 	}
 
-	srand(time(0));
-
 	init_screen(m, n);
-
 
 
 
@@ -55,8 +69,8 @@ int game(void)
 	{
 		do
 		{
-			my = rand()%(m - 2) + 1;
-			mx = rand()%(n - 2) + 1;
+			my = xorshf96()%(m - 2) + 1;
+			mx = xorshf96()%(n - 2) + 1;
 		}
 		while (screen[my][mx] != 0);
 		screen[my][mx] = 3;
@@ -86,7 +100,7 @@ int game(void)
 
 	/* -Spawning players- */
 	/* Player 1 */
-	screen[x][y] = 1;
+	screen[y][x] = 1;
 
 	draw(screen);
 
@@ -100,7 +114,7 @@ int game(void)
 		{
 		case KEY_LEFT:
 		case 'a':
-			if (x && screen[y][x - 1] == 0) {
+			if (screen[y][x - 1] == 0) {
 				screen[y][x] = 0;
 				x--;
 				screen[y][x] = 1;
@@ -108,7 +122,7 @@ int game(void)
 			break;
 		case KEY_RIGHT:
 		case 'd':
-			if (x < n - 1 && screen[y][x + 1] == 0) {
+			if (screen[y][x + 1] == 0) {
 				screen[y][x] = 0;
 				x++;
 				screen[y][x] = 1;
@@ -116,7 +130,7 @@ int game(void)
 			break;
 		case KEY_UP:
 		case 'w':
-			if (y && screen[y - 1][x] == 0) {
+			if (screen[y - 1][x] == 0) {
 				screen[y][x] = 0;
 				y--;
 				screen[y][x] = 1;
@@ -124,7 +138,7 @@ int game(void)
 			break;
 		case KEY_DOWN:
 		case 's':
-			if (y < m - 1 && screen[y + 1][x] == 0) {
+			if (screen[y + 1][x] == 0) {
 				screen[y][x] = 0;
 				y++;
 				screen[y][x] = 1;

@@ -16,6 +16,7 @@ void init_screen(int mm, int nn)
 	
 	game_win = newwin(m + 1, n + 1, 2, 3);
 	keypad(game_win, TRUE);
+	nodelay(game_win, TRUE);
 	
 	hud_win = newwin(8, 30, 5, COLS - 35);
 	box(hud_win, 0, 0);

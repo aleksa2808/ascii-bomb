@@ -39,8 +39,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\curses;$(IncludePath)</IncludePath>
-    <LibraryPath>C:\curses\win32;$(LibraryPath)</LibraryPath>
+    <IncludePath>C:\Users\Nikola\Documents\curses;$(IncludePath)</IncludePath>
+    <LibraryPath>C:\Users\Nikola\Documents\curses\win32;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

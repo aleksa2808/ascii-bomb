@@ -79,7 +79,6 @@ int main()
 void print_menu(WINDOW *menu_win, int highlight)
 {
 	int x, y, i;	
-
 	x = 2;
 	y = 2;
 	box(menu_win, 0, 0);

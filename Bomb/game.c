@@ -26,7 +26,7 @@ int game(void)
 {
 	/* ~Initialization~ */
 	extern WINDOW *game_win;
-	int i, j, x = 1, y = 1, ch, mx, my, fill, m = 21, n = 35, per = 50;
+	int i, j, x = 1, y = 1, ch, mx, my, fill, m = 23, n = 35, per = 50;
 	
 	char **screen;
 	screen = (char**) malloc(m * sizeof(char*));

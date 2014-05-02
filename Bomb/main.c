@@ -69,6 +69,7 @@ int main()
 			endwin();
 			return 0;
 		}
+		resize_term(25, 80);
 		choice = 0;
 	}	
 
@@ -84,8 +85,10 @@ void print_menu(WINDOW *menu_win, int highlight)
 	y = 2;
 	box(menu_win, 0, 0);
 	for(i = 0; i < n_choices; ++i)
-	{	if(highlight == i + 1)
-		{	wattron(menu_win, A_REVERSE); 
+	{	
+		if(highlight == i + 1)
+		{	
+			wattron(menu_win, A_REVERSE); 
 			mvwprintw(menu_win, y, x, "%s", choices[i]);
 			wattroff(menu_win, A_REVERSE);
 		}

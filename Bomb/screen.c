@@ -8,13 +8,15 @@ void init_screen(int mm, int nn)
 	m = mm;
 	n = nn;
 
+	resize_term(50, 170);
+
 	start_color();
 	init_pair(1, COLOR_GREEN, COLOR_GREEN);
 	init_pair(2, COLOR_BLUE, COLOR_BLUE);
 	init_pair(3, COLOR_WHITE, COLOR_WHITE);
-	init_pair(4, COLOR_RED, COLOR_RED);
+	init_pair(4, COLOR_CYAN, COLOR_CYAN);
 	
-	game_win = newwin(m + 1, n + 1, 2, 3);
+	game_win = newwin(m * 2 + 1, n * 3 + 1, 2, 3);
 	keypad(game_win, TRUE);
 	nodelay(game_win, TRUE);
 	
@@ -36,7 +38,9 @@ void draw(char **screen)
 		for (j = 0; j < n; j++)
 		{
 			wattron(game_win, COLOR_PAIR(screen[i][j] + 1));
-			wprintw(game_win, "%d", screen[i][j]);
+			mvwprintw(game_win, i*2,j*3,"%d%d%d",screen[i][j],screen[i][j],screen[i][j]);
+			mvwprintw(game_win, i*2+1,j*3,"%d%d%d",screen[i][j],screen[i][j],screen[i][j]);
+			//wprintw(game_win, "%d", screen[i][j]);
 			wattroff(game_win, COLOR_PAIR(screen[i][j] + 1));
 		}
 		wprintw(game_win, "\n");

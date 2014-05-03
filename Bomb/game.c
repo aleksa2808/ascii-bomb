@@ -1,5 +1,17 @@
 #include <curses.h>
 #include <stdlib.h>
+#include<time.h>
+
+typedef struct igrac {
+		int ziv,bombe,bps,x,y,domet;
+		char ime[20];
+	} igrac;
+typedef struct bomba{
+		int domet,x,y;
+		long end;
+		char ime[20];
+		struct bomba *next;
+	} bomba;
 
 extern void init_screen(int, int);
 extern void draw(char**);
@@ -26,9 +38,12 @@ int game(void)
 {
 	/* ~Initialization~ */
 	extern WINDOW *game_win;
-	int i, j, x = 1, y = 1, ch, mx, my, fill, m = 21, n = 35, per = 50;
-	
 	char **screen;
+	bomba *pocetna=0,*trenutni=0,*prethodni;
+	int i, j, x = 1, y = 1, ch, mx, my, fill, m = 21, n = 35, per = 50;
+	igrac igrac1;
+	igrac1.bombe=5;
+	igrac1.domet=2;
 	screen = (char**) malloc(m * sizeof(char*));
 	for (i = 0; i < m; i++)
 	{
@@ -115,7 +130,7 @@ int game(void)
 		case KEY_LEFT:
 		case 'a':
 			if (screen[y][x - 1] == 0) {
-				screen[y][x] = 0;
+				if(screen[y][x]<4) screen[y][x] = 0;
 				x--;
 				screen[y][x] = 1;
 			}
@@ -123,7 +138,7 @@ int game(void)
 		case KEY_RIGHT:
 		case 'd':
 			if (screen[y][x + 1] == 0) {
-				screen[y][x] = 0;
+				if(screen[y][x]<4) screen[y][x] = 0;
 				x++;
 				screen[y][x] = 1;
 			}
@@ -131,7 +146,7 @@ int game(void)
 		case KEY_UP:
 		case 'w':
 			if (screen[y - 1][x] == 0) {
-				screen[y][x] = 0;
+				if(screen[y][x]<4) screen[y][x] = 0;
 				y--;
 				screen[y][x] = 1;
 			}
@@ -139,9 +154,32 @@ int game(void)
 		case KEY_DOWN:
 		case 's':
 			if (screen[y + 1][x] == 0) {
-				screen[y][x] = 0;
+				if(screen[y][x]<4) screen[y][x] = 0;
 				y++;
 				screen[y][x] = 1;
+			}
+			break;
+		case ' ':
+			if (igrac1.bombe && screen[y][x]!=4) {
+			screen[y][x] = 4;
+			igrac1.bombe--;
+			if(pocetna == 0){
+			pocetna = (bomba*) malloc(sizeof(bomba));
+			pocetna->end=clock();
+			pocetna->x=x;
+			pocetna->y=y;
+			pocetna->next=trenutni;
+			prethodni=pocetna;
+			}
+			else{
+			trenutni= (bomba*) malloc(sizeof(bomba));
+			trenutni->end=clock();
+			trenutni->x=x;
+			trenutni->y=y;
+			trenutni->next=0;
+			prethodni->next=trenutni;
+			prethodni=trenutni;
+			}
 			}
 			break;
 		case 't':
@@ -149,7 +187,16 @@ int game(void)
 			refresh();
 			return 0;
 		}
-		
+		if ((pocetna !=0) && ((pocetna->end)+1) > clock()) 
+		{ 
+			if(screen[pocetna->y+1][pocetna->x]==3) screen[pocetna->y+1][pocetna->x]=0;
+			if(screen[pocetna->y-1][pocetna->x]==3) screen[pocetna->y-1][pocetna->x]=0;
+			if(screen[pocetna->y][pocetna->x+1]==3) screen[pocetna->y][pocetna->x+1]=0;
+			if(screen[pocetna->y][pocetna->x-1]==3) screen[pocetna->y][pocetna->x-1]=0;
+			screen[pocetna->y][pocetna->x]=1;
+			pocetna=pocetna->next;
+			igrac1.bombe++;
+		}
 		draw(screen);
 	}
 

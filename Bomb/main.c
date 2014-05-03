@@ -51,7 +51,7 @@ int main()
 			else 
 				++highlight;
 			break;
-		case 10:
+		case ' ':
 			choice = highlight;
 			break;
 		}

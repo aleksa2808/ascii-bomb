@@ -1,4 +1,5 @@
 #include <curses.h>
+#include <Windows.h>
 #define WIDTH 30
 #define HEIGHT 10 
 
@@ -23,6 +24,8 @@ int main()
 	int highlight = 1;
 	int choice = 0;
 	int c;
+	int i;
+	char *splash = "SPLASH", *screen = "SCREEN!";
 
 	initscr();
 	noecho();
@@ -30,7 +33,23 @@ int main()
 	curs_set(0);
 	startx = 5;
 	starty = 3;
-		
+	
+
+	/* Splash screen */
+	for (i = 0; i < COLS / 2 - 4; i++)
+	{
+		clear();
+		mvprintw(LINES / 2, i, "%s", splash);
+		mvprintw(LINES / 2 + 1, COLS - 7 - i, "%s", screen);
+		refresh();
+		Sleep(15);
+	}
+	Sleep(2000);
+	flushinp();
+	clear();
+	refresh();
+
+
 	menu_win = newwin(HEIGHT, WIDTH, starty, startx);
 	keypad(menu_win, TRUE);
 	while(1)
@@ -62,6 +81,7 @@ int main()
 			clear();
 			refresh();
 			game();
+			resize_term(25, 80);
 			break;
 		case 5:
 			clrtoeol();
@@ -69,7 +89,6 @@ int main()
 			endwin();
 			return 0;
 		}
-		resize_term(25, 80);
 		choice = 0;
 	}	
 

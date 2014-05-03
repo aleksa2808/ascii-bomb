@@ -40,7 +40,7 @@ int game(void)
 	extern WINDOW *game_win;
 	char **screen;
 	bomba *pocetna=0,*trenutni=0,*prethodni;
-	int i, j, x = 1, y = 1, ch, mx, my, fill, m = 21, n = 35, per = 50;
+	int i, j, x = 1, y = 1, ch, mx, my, fill, m = 21, n = 35, per = 50,bom=0;
 	igrac igrac1;
 	igrac1.bombe=5;
 	igrac1.domet=2;
@@ -130,6 +130,7 @@ int game(void)
 		case KEY_LEFT:
 		case 'a':
 			if (screen[y][x - 1] == 0) {
+				if(bom){bom=0;screen[y][x]=4;}else
 				if(screen[y][x]<4) screen[y][x] = 0;
 				x--;
 				screen[y][x] = 1;
@@ -138,6 +139,7 @@ int game(void)
 		case KEY_RIGHT:
 		case 'd':
 			if (screen[y][x + 1] == 0) {
+				if(bom){bom=0;screen[y][x]=4;}else
 				if(screen[y][x]<4) screen[y][x] = 0;
 				x++;
 				screen[y][x] = 1;
@@ -146,6 +148,7 @@ int game(void)
 		case KEY_UP:
 		case 'w':
 			if (screen[y - 1][x] == 0) {
+				if(bom){bom=0;screen[y][x]=4;}else
 				if(screen[y][x]<4) screen[y][x] = 0;
 				y--;
 				screen[y][x] = 1;
@@ -154,6 +157,7 @@ int game(void)
 		case KEY_DOWN:
 		case 's':
 			if (screen[y + 1][x] == 0) {
+				if(bom){bom=0;screen[y][x]=4;}else
 				if(screen[y][x]<4) screen[y][x] = 0;
 				y++;
 				screen[y][x] = 1;
@@ -161,8 +165,8 @@ int game(void)
 			break;
 		case ' ':
 			if (igrac1.bombe && screen[y][x]!=4) {
-			screen[y][x] = 4;
 			igrac1.bombe--;
+			bom=1;
 			if(pocetna == 0){
 			pocetna = (bomba*) malloc(sizeof(bomba));
 			pocetna->end=clock();
@@ -187,13 +191,14 @@ int game(void)
 			refresh();
 			return 0;
 		}
-		if ((pocetna !=0) && ((pocetna->end)+1) > clock()) 
+		if ((pocetna !=0) && ((pocetna->end)+1800) <= clock()) 
 		{ 
 			if(screen[pocetna->y+1][pocetna->x]==3) screen[pocetna->y+1][pocetna->x]=0;
 			if(screen[pocetna->y-1][pocetna->x]==3) screen[pocetna->y-1][pocetna->x]=0;
 			if(screen[pocetna->y][pocetna->x+1]==3) screen[pocetna->y][pocetna->x+1]=0;
 			if(screen[pocetna->y][pocetna->x-1]==3) screen[pocetna->y][pocetna->x-1]=0;
-			screen[pocetna->y][pocetna->x]=1;
+			if(pocetna->y != y || pocetna->x != x) screen[pocetna->y][pocetna->x]=0;
+			else bom=0;
 			pocetna=pocetna->next;
 			igrac1.bombe++;
 		}

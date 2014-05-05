@@ -29,7 +29,7 @@ typedef struct {
 typedef struct BombList {
 	Bomb *bomb;
 	struct BombList *prev, *next;
-};
+}BombList;
 
 typedef struct PlayerList {
 	Player *player;
@@ -404,7 +404,7 @@ void boom(struct BombList *bomb_to_boom)
 }
  
 extern void init_screen(int, int);
-extern void draw(char**);
+extern void draw(char**,BombList*);
  
 int game(void)
 {
@@ -438,7 +438,7 @@ int game(void)
 	/* Bot 1 */
 	//screen[bot1.y][bot1.x] = 1;
  
-    draw(screen);
+    draw(screen,blist_front);
  
  
  
@@ -513,7 +513,7 @@ int game(void)
 		}
 
 		//flushinp();
-        draw(screen);
+        draw(screen,blist_front);
 		//Sleep(10);		
     }
  

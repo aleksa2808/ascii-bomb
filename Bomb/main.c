@@ -44,7 +44,7 @@ int main()
 		refresh();
 		Sleep(15);
 	}
-	Sleep(2000);
+	Sleep(1000);
 	flushinp();
 	clear();
 	refresh();

@@ -1,6 +1,6 @@
 #include <curses.h>
 #include <time.h>
-int m, n, k=0;
+int m, n, k;
 WINDOW *game_win, *hud_win;
  
 
@@ -15,8 +15,8 @@ WINDOW *game_win, *hud_win;
 //((screen[i+1][j]==3)&&(screen[i][j+1]==3)&&(screen[i+1][j+1]==3))?(' '):((screen[i+1][j]==3)&&(screen[i][j+1]==3))?(0xDA):(screen[i][j+1]==3)?(0xDD):(screen[i+1][j]==2?)?(0xB3):(0xD9)
 
 typedef struct {
-	int x, y, health, speed, bombs, bomb_range, immortal_start;
-	bool on_bomb, on_fire, immortal;
+	int x, y, health, speed, bombs, bomb_range, immortal_start, action;
+	bool immortal;
 	char name[20];
 	unsigned char powers;
 } Player;
@@ -24,16 +24,20 @@ typedef struct {
 	Player *owner;
 	int x, y, range, start_time;
 } Bomb;
-
 typedef struct BombList {
 	Bomb *bomb;
 	struct BombList *prev, *next;
-} BombList;
+};
+typedef struct PlayerList {
+	Player *player;
+	struct PlayerList *prev, *next;
+};
 
 void init_screen(int mm, int nn)
 {
     m = mm;
     n = nn;
+	k=0;
  
     resize_term(50, 170);
  
@@ -48,6 +52,7 @@ void init_screen(int mm, int nn)
     init_pair(12, 0, 14);
     init_pair(13, 0, 13);
     init_pair(14, 0, 12);
+    init_pair(15, 0, 11);
        
     game_win = newwin(m * 2 + 1, n * 3 + 1, 2, 3);
     keypad(game_win, TRUE);
@@ -70,11 +75,15 @@ void init_screen(int mm, int nn)
 	wattron(hud_win, COLOR_PAIR(14));
     mvwprintw(hud_win, 9, 4, "LIFE+");
 	wattroff(hud_win, COLOR_PAIR(14));
+	
+	wattron(hud_win, COLOR_PAIR(15));
+    mvwprintw(hud_win, 10, 4, "PASS THROUGH WALLS");
+	wattroff(hud_win, COLOR_PAIR(15));
 
     wrefresh(hud_win);
 }
  
-void draw(char **screen,BombList *b)
+void draw(char **screen, struct BombList *b, struct PlayerList *p)
 {	
     int i, j;
 	char c1,c2,c3,c4,c5,c6;
@@ -83,26 +92,38 @@ void draw(char **screen,BombList *b)
     {
             for (j = 0; j < n; j++)
             {
-                    screen[i][j]==5?k%6<3?wattron(game_win,COLOR_PAIR(6)):wattron(game_win,COLOR_PAIR(7)):wattron(game_win, COLOR_PAIR(screen[i][j] + 1));
-					screen[i][j]==1?(c1=c3='_',c2='m',c4='(',c5='\"',c6=')'):screen[i][j]==2?(c1=0xDA,c2=0xC4,c3=0xBF,c4=0xC0,c5=0xC4,c6=0xD9):screen[i][j]==3?(c1=upleft,c2=pureup,c3=upright,c4=downleft,c5=puredown,c6=downright):screen[i][j]==4?(c1=0xCF,c2=0xBF,c3=' ',c4='(',c5='_',c6=')'):(c1=c3=c5=c2=c4=c6=screen[i][j]==5?0xB1:' ');/*mesto za eksploziju*/
+                    screen[i][j]==5?k%20<10?wattron(game_win,COLOR_PAIR(6)):wattron(game_win,COLOR_PAIR(7)):wattron(game_win, COLOR_PAIR(screen[i][j] + 1));
+					screen[i][j]==2?(c1=0xDA,c2=0xC4,c3=0xBF,c4=0xC0,c5=0xC4,c6=0xD9):screen[i][j]==3?(c1=upleft,c2=pureup,c3=upright,c4=downleft,c5=puredown,c6=downright):screen[i][j]==4?(c1=0xCF,c2=0xBF,c3=' ',c4='(',c5='_',c6=')'):(c1=c3=c5=c2=c4=c6=screen[i][j]==5?0xB1:' ');/*mesto za eksploziju*/
 					mvwprintw(game_win, i*2,j*3,"%c%c%c",c1,c2,c3);
 					mvwprintw(game_win, i*2+1,j*3,"%c%c%c",c4,c5,c6);
                     //wprintw(game_win, "%d", screen[i][j]);
-                    screen[i][j]==5?k%10<5?wattroff(game_win,COLOR_PAIR(6)):wattroff(game_win,COLOR_PAIR(7)):wattroff(game_win, COLOR_PAIR(screen[i][j] + 1));
+                    screen[i][j]==5?k%20<10?wattroff(game_win,COLOR_PAIR(6)):wattroff(game_win,COLOR_PAIR(7)):wattroff(game_win, COLOR_PAIR(screen[i][j] + 1));
             }
             wprintw(game_win, "\n");
     }
 	while (b != NULL){
-		if(screen[b->bomb->y][b->bomb->x]!=1){
 		wattron(game_win,COLOR_PAIR(5));
-		b->bomb->start_time+750>=clock()?((k%3==0?(c1=0xCF):k%3==1?(c1='*'):(c1='+')),c2=0xBF,c3=' ',c4='(',c5='_',c6=')'):((k%3==0?(c2=0xCF):k%3==1?(c2='*'):(c2='+')),c1=' ',c3=' ',c4='(',c5='_',c6=')');
+		b->bomb->start_time + 800>=clock()?((k%3==0?(c1=0xCF):k%3==1?(c1='*'):(c1='+')),c2=0xBF,c3=' ',c4='(',c5='_',c6=')'):((k%3==0?(c2=0xCF):k%3==1?(c2='*'):(c2='+')),c1=' ',c3=' ',c4='(',c5='_',c6=')');
 		mvwprintw(game_win, b->bomb->y*2,b->bomb->x*3,"%c%c%c",c1,c2,c3);
 		mvwprintw(game_win, b->bomb->y*2+1,b->bomb->x*3,"%c%c%c",c4,c5,c6);
-		
 		wattroff(game_win,COLOR_PAIR(5));
-		}
+
 		b=b->next;
 	}
+	while (p != NULL){
+		if (p->player->immortal == TRUE && k % 500 > 250)
+			wattron(game_win, COLOR_PAIR(1));
+		else
+			wattron(game_win, COLOR_PAIR(2));
+		c1=c3='_', c2='m', c4='(', c5='\"', c6=')';
+		mvwprintw(game_win, p->player->y*2,p->player->x*3,"%c%c%c",c1,c2,c3);
+		mvwprintw(game_win, p->player->y*2+1,p->player->x*3,"%c%c%c",c4,c5,c6);
+		if (p->player->immortal == TRUE && k % 500 > 250) wattroff(game_win, COLOR_PAIR(1));
+		else wattroff(game_win, COLOR_PAIR(2));
+
+		p = p->next;
+	}
 	k++;
-			wrefresh(game_win);
+	if (k > 3000) k = 0;
+	wrefresh(game_win);
 }

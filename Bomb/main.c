@@ -1,5 +1,6 @@
 #include <curses.h>
 #include <Windows.h>
+#include <time.h>
 #define WIDTH 30
 #define HEIGHT 10 
 
@@ -7,10 +8,8 @@ int startx = 0;
 int starty = 0;
 
 char *choices[] = { 
-			"Start game",
-			"*options*",
-			"bla bla",
-			"skkrdfa",
+			"Arena 1",
+			"Arena 2",
 			"Exit game"
 		  };
 int n_choices = sizeof(choices) / sizeof(char *);
@@ -44,7 +43,8 @@ int main()
 		refresh();
 		Sleep(15);
 	}
-	Sleep(1000);
+	Sleep(200);
+	
 	flushinp();
 	clear();
 	refresh();
@@ -83,7 +83,13 @@ int main()
 			game();
 			resize_term(25, 80);
 			break;
-		case 5:
+		case 2:
+			clear();
+			refresh();
+			game();
+			resize_term(25, 80);
+			break;
+		case 3:
 			clrtoeol();
 			refresh();
 			endwin();

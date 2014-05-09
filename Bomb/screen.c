@@ -3,21 +3,16 @@
 int m, n, k;
 WINDOW *game_win, *hud_win;
  
-
 #define upleft (((screen[i-1][j]==3)&&(screen[i][j-1]==3)&&(screen[i-1][j-1]==3)?' ':(((screen[i-1][j]==3)&&(screen[i][j-1]==3))?0xD9:(((screen[i][j-1]==3)?0xC4:((screen[i-1][j]==3)?0xB3:0xDA))))))
-#define pureup		(screen[i-1][j]==3)?(' '):(0xC4)
+#define pureup	(screen[i-1][j]==3)?(' '):(0xC4)
 #define upright (((screen[i-1][j]==3)&&(screen[i][j+1]==3)&&(screen[i-1][j+1]==3)?' ':(((screen[i-1][j]==3)&&(screen[i][j+1]==3))?0xC0:(((screen[i][j+1]==3)?0xC4:((screen[i-1][j]==3)?0xB3:0xBF))))))
-//((screen[i-1][j]==3)&&(screen[i][j+1]==3)&&(screen[i-1][j+1]==3))?(' '):((screen[i-1][j]==3)&&(screen[i][j+1]==3))?(0xC0):(screen[i][j+1]==3)?(0xDD):(screen[i-1][j]==2?)?(0xB3):(0xBF)
 #define downleft (((screen[i+1][j]==3)&&(screen[i][j-1]==3)&&(screen[i+1][j-1]==3)?' ':(((screen[i+1][j]==3)&&(screen[i][j-1]==3))?0xBF:(((screen[i][j-1]==3)?0xC4:((screen[i+1][j]==3)?0xB3:0xC0))))))
-//downleft ((screen[i+1][j]==3)&&(screen[i][j-1]==3)&&(screen[i+1][j-1]==3))?(' '):((screen[i+1][j]==3)&&(screen[i][j-1]==3))?(0xBF):(screen[i][j-1]==3)?(0xDD):(screen[i+1][j]==2?)?(0xB3):(0xC0)
 #define puredown (screen[i+1][j]==3)?(' '):(0xC4)
 #define downright (((screen[i+1][j]==3)&&(screen[i][j+1]==3)&&(screen[i+1][j+1]==3)?' ':(((screen[i+1][j]==3)&&(screen[i][j+1]==3))?0xDA:(((screen[i][j+1]==3)?0xC4:((screen[i+1][j]==3)?0xB3:0xD9))))))
-//((screen[i+1][j]==3)&&(screen[i][j+1]==3)&&(screen[i+1][j+1]==3))?(' '):((screen[i+1][j]==3)&&(screen[i][j+1]==3))?(0xDA):(screen[i][j+1]==3)?(0xDD):(screen[i+1][j]==2?)?(0xB3):(0xD9)
 
 typedef struct {
-	int x, y, health, speed, bombs, bomb_range, immortal_start, action;
-	bool immortal;
-	char name[20];
+	int id, x, y, health, bombs, bomb_range, action, immortal_start, last_move;
+	bool alive, immortal;
 	unsigned char powers;
 } Player;
 typedef struct { 
@@ -39,7 +34,7 @@ void init_screen(int mm, int nn)
     n = nn;
 	k=0;
  
-    resize_term(50, 170);
+    resize_term(5 + m * 2 + 1, 3 + n * 3 + 3);
  
     start_color();
     init_pair(1, COLOR_GREEN, COLOR_GREEN);
@@ -53,15 +48,20 @@ void init_screen(int mm, int nn)
     init_pair(13, 0, 13);
     init_pair(14, 0, 12);
     init_pair(15, 0, 11);
+    init_pair(16, 0, 10);
        
-    game_win = newwin(m * 2 + 1, n * 3 + 1, 2, 3);
+    game_win = newwin(m * 2 + 1 , n * 3, 5, 3);
     keypad(game_win, TRUE);
     nodelay(game_win, TRUE);
         
-    hud_win = newwin(20, 30, 5, COLS - 35);
+    hud_win = newwin(5, COLS, 0, 0);
     box(hud_win, 0, 0);
-    mvwprintw(hud_win, 2, 6, "Bomberman! \\(^_^)/");
-    mvwprintw(hud_win, 4, 5, "Press T to get back");
+    mvwprintw(hud_win, 2, COLS / 2 - 9, "Bomberman! \\(^_^)/");
+    /*mvwprintw(hud_win, 4, 5, "Press ");
+	wattron(hud_win, A_BOLD); 
+    wprintw(hud_win, "Esc");
+	wattroff(hud_win, A_BOLD); 
+    wprintw(hud_win, " to get back");
     mvwprintw(hud_win, 5, 4, "  to the main menu.");
 
 	wattron(hud_win, COLOR_PAIR(12));
@@ -79,10 +79,13 @@ void init_screen(int mm, int nn)
 	wattron(hud_win, COLOR_PAIR(15));
     mvwprintw(hud_win, 10, 4, "PASS THROUGH WALLS");
 	wattroff(hud_win, COLOR_PAIR(15));
+	
+	wattron(hud_win, COLOR_PAIR(16));
+    mvwprintw(hud_win, 11, 4, "IMMORTAL!");
+	wattroff(hud_win, COLOR_PAIR(16));*/
 
     wrefresh(hud_win);
 }
- 
 void draw(char **screen, struct BombList *b, struct PlayerList *p)
 {	
     int i, j;
@@ -103,7 +106,7 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
     }
 	while (b != NULL){
 		wattron(game_win,COLOR_PAIR(5));
-		b->bomb->start_time + 800>=clock()?((k%3==0?(c1=0xCF):k%3==1?(c1='*'):(c1='+')),c2=0xBF,c3=' ',c4='(',c5='_',c6=')'):((k%3==0?(c2=0xCF):k%3==1?(c2='*'):(c2='+')),c1=' ',c3=' ',c4='(',c5='_',c6=')');
+		b->bomb->start_time + CLOCKS_PER_SEC >=clock()?((k%3==0?(c1=0xCF):k%3==1?(c1='*'):(c1='+')),c2=0xBF,c3=' ',c4='(',c5='_',c6=')'):((k%3==0?(c2=0xCF):k%3==1?(c2='*'):(c2='+')),c1=' ',c3=' ',c4='(',c5='_',c6=')');
 		mvwprintw(game_win, b->bomb->y*2,b->bomb->x*3,"%c%c%c",c1,c2,c3);
 		mvwprintw(game_win, b->bomb->y*2+1,b->bomb->x*3,"%c%c%c",c4,c5,c6);
 		wattroff(game_win,COLOR_PAIR(5));
@@ -111,14 +114,15 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 		b=b->next;
 	}
 	while (p != NULL){
-		if (p->player->immortal == TRUE && k % 500 > 250)
+		if (p->player->immortal == TRUE && k % 20 > 10)
 			wattron(game_win, COLOR_PAIR(1));
 		else
 			wattron(game_win, COLOR_PAIR(2));
-		c1=c3='_', c2='m', c4='(', c5='\"', c6=')';
+		c1=c3=0xDC;c2=c4=c5=c6=0xDF;
+		//c1=c3='_', c2='m', c4='(', c5='\"', c6=')';
 		mvwprintw(game_win, p->player->y*2,p->player->x*3,"%c%c%c",c1,c2,c3);
 		mvwprintw(game_win, p->player->y*2+1,p->player->x*3,"%c%c%c",c4,c5,c6);
-		if (p->player->immortal == TRUE && k % 500 > 250) wattroff(game_win, COLOR_PAIR(1));
+		if (p->player->immortal == TRUE && k % 20 > 10) wattroff(game_win, COLOR_PAIR(1));
 		else wattroff(game_win, COLOR_PAIR(2));
 
 		p = p->next;

@@ -4,19 +4,25 @@
 #include <Windows.h>
 
 #define EMPTY 0
-//#define PLAYER 1
 #define STONE_WALL 2
 #define WALL 3
 #define BOMB 4
 #define FIRE 5
-#define FIREWALL 6
-#define FIREPOWER 7
+#define WALL_ON_FIRE 6
+#define POWER_ON_FIRE 7
 
-#define POWER 11//, 12, 13, 14...
+#define POWER_CHANCE 10
+
+#define POWER_START 11
+#define BOMBS_UP 11
+#define RANGE_UP 12
+#define HEALTH_UP 13
+#define WALL_HACK 14
+#define IMMORTAL 15
 
 typedef struct {
 	int id, x, y, health, bombs, bomb_range, action, immortal_start, last_move;
-	bool alive, immortal;
+	bool immortal;
 	unsigned char powers;
 } Player;
 typedef struct { 
@@ -40,18 +46,81 @@ char **screen;
 struct BombList *blist_front, *blist_rear;
 struct PlayerList *plist_front, *plist_rear;
 struct FireList *flist_front, *flist_rear;
-int iter_time, m = 13, n = 17, per = 80, num_bots = 3;
+int iter_time, m = 13, n = 19, per = 80, num_players = 1, num_bots = 7;
+extern WINDOW *game_win;
 
 extern void init_screen(int, int);
 extern void draw(char**, struct BombList*, struct PlayerList*);
+extern void del_stuff(void);
 
 extern void bot_action(Player*);
 
 void boom(int y, int x, int range);
 
-Player init_player(int id, Player *player, int y, int x)
+void create_map(int m, int n, int per)
 {
-	struct PlayerList *p = (struct PlayerList*) malloc(sizeof(struct PlayerList));
+	int i, j, fill, mx, my;
+
+	/* ~Map creation~ */
+    /* Grass */
+    for (i = 0; i < m; i++)
+            for (j = 0; j < n; j++)
+                    screen[i][j] = EMPTY;
+ 
+    /* Borders */
+    for (i = 0; i < m; i++)
+    {
+            screen[i][0] = STONE_WALL;
+            screen[i][n - 1] = STONE_WALL;
+    }
+    for (i = 0; i < n; i++)
+    {
+            screen[0][i] = STONE_WALL;
+            screen[m - 1][i] = STONE_WALL;
+    }
+       
+    /* Blocks */
+    for (i = 2; i < m - 1; i += 2)
+            for (j = 2; j < n - 1; j += 2)
+                    screen[i][j] = STONE_WALL;
+
+    /* Destructibles */
+    fill = (((m - 2) / 2 + 1) * (n - 2) + ((m - 2) / 2) * ((n - 2) / 2 + 1)); // Number of empty blocks
+    fill = fill * (per/100.0);
+    for (i = 0; i < fill; i++)
+    {
+            do
+            {
+                    my = rand()%(m - 2) + 1;
+                    mx = rand()%(n - 2) + 1;
+            }
+            while (screen[my][mx] != 0);
+            screen[my][mx] = WALL;
+    }
+}
+void spawn(int id, Player *player, int y, int x)
+{
+	screen[y][x] = EMPTY;
+	if (screen[y][x + 1] != 2) screen[y][x + 1] = EMPTY;
+	if (screen[y + 1][x] != 2) screen[y + 1][x] = EMPTY;
+	if (screen[y][x - 1] != 2) screen[y][x - 1] = EMPTY;
+	if (screen[y - 1][x] != 2) screen[y - 1][x] = EMPTY;
+
+	player->id = id;
+	player->y = y;
+	player->x = x;
+	player->health = 1;
+	player->bombs = 1;
+	player->bomb_range = 2;
+	player->immortal = FALSE;
+	player->powers = 0;
+	player->last_move = 0;
+	player->action = 0;
+}
+void player_queue(Player *player)
+{
+	struct PlayerList *p;
+	p = (struct PlayerList*) malloc(sizeof(struct PlayerList));
 	p->player = player;
 	p->next = NULL;
 	if (plist_rear == NULL) 
@@ -65,151 +134,78 @@ Player init_player(int id, Player *player, int y, int x)
 		p->prev = plist_rear;
 	}
 	plist_rear = p;
-	
-	player->id = id;
-	player->y = y;
-	player->x = x;
-	player->health = 1;
-	player->bombs = 1;
-	player->bomb_range = 2;
-	player->immortal = FALSE;
-	player->alive = TRUE;
-	player->powers = 0;
-	player->last_move = 0;
-	player->action = 0;
-
-	return *player;
 }
-void create_map(int m, int n, int per)
+void init_players()
 {
-	int i, j, fill, mx, my;
+	int i;
+	Player *player;
+	int x[8] = {1, n - 2, n - 2, 1, 5, n - 6, n - 6, 5}, y[8] = {1, m - 2, 1, m - 2, 3, m - 4, 3, m - 4};
+	for (i = 0; i < num_players; i++)
+	{
+		player = (Player*) malloc(sizeof(Player));
+		player_queue(player);
+		spawn(i + 1, player, y[i], x[i]);	
+	}
+	for (i = 0; i < num_bots; i++)
+	{
+		player = (Player*) malloc(sizeof(Player));
+		player_queue(player);
+		spawn(num_players + i + 1, player, y[num_players + i], x[num_players + i]);
+	}
+}
+void pause(void)
+{
+	int pause_start = iter_time;
+	nodelay(game_win, FALSE);
+	while (getch() != 10);
+	nodelay(game_win, TRUE);
 
-	/* ~Map creation~ */
-    /* Grass */
-    for (i = 0; i < m; i++)
-            for (j = 0; j < n; j++)
-                    screen[i][j] = 0;
- 
-    /* Borders */
-    for (i = 0; i < m; i++)
-    {
-            screen[i][0] = 2;
-            screen[i][n - 1] = 2;
-    }
-    for (i = 0; i < n; i++)
-    {
-            screen[0][i] = 2;
-            screen[m - 1][i] = 2;
-    }
-       
-    /* Blocks */
-    for (i = 2; i < m - 1; i += 2)
-            for (j = 2; j < n - 1; j += 2)
-                    screen[i][j]=2;
- 
-	/* -Reserving corners- */
-    /* Top left */
-    screen[1][2] = 1;
-    screen[1][1] = 1;
-    screen[2][1] = 1;
-    /* Top right */
-    screen[1][n - 3] = 1;
-    screen[1][n - 2] = 1;
-    screen[2][n - 2] = 1;
-    /* Bottom left */
-    screen[m - 3][1] = 1;
-    screen[m - 2][1] = 1;
-    screen[m - 2][2] = 1;
-    /* Bottom right */
-    screen[m - 2][n - 3] = 1;
-    screen[m - 2][n - 2] = 1;
-    screen[m - 3][n - 2] = 1;
-
-    /* Destructibles */
-    fill = (((m - 2) / 2 + 1) * (n - 2) + ((m - 2) / 2) * ((n - 2) / 2 + 1)); // Number of empty blocks
-    fill = fill * (per/100.0);
-    for (i = 0; i < fill; i++)
-    {
-            do
-            {
-                    my = rand()%(m - 2) + 1;
-                    mx = rand()%(n - 2) + 1;
-            }
-            while (screen[my][mx] != 0);
-            screen[my][mx] = 3;
-    }
- 
-    /* -Clearing corners- */
-    /* Top left */
-    screen[1][2] = 0;
-    screen[1][1] = 0;
-    screen[2][1] = 0;
-    /* Top right */
-    screen[1][n - 3] = 0;
-    screen[1][n - 2] = 0;
-    screen[2][n - 2] = 0;
-    /* Bottom left */
-    screen[m - 3][1] = 0;
-    screen[m - 2][1] = 0;
-    screen[m - 2][2] = 0;
-    /* Bottom right */
-    screen[m - 2][n - 3] = 0;
-    screen[m - 2][n - 2] = 0;
-    screen[m - 3][n - 2] = 0;
 }
 void power_time(Player *player)
 {
-	switch (screen[player->y][player->x] - POWER)
+	switch (screen[player->y][player->x])
 	{
-	case 0:
+	case BOMBS_UP:
 		player->bombs++;
 		break;
-	case 1:
+	case RANGE_UP:
 		player->bomb_range++;
 		break;
-	case 2:
+	case HEALTH_UP:
 		player->health++;
 		break;
-	case 3:
+	case WALL_HACK:
 		player->powers |= 0x10;
 		break;
-	case 4:
+	case IMMORTAL:
 		player->immortal = TRUE;
 		player->immortal_start = iter_time;
 		break;
 	}
-	screen[player->y][player->x] = 0;
+	screen[player->y][player->x] = EMPTY;
 }
 void gen_power(int y, int x)
 {
-	struct PlayerList *p;
 	int r = rand() % 100;
 
-	if (r < 45) screen[y][x] = 11;
-	if (r >= 45 && r < 90) screen[y][x] = 12;
-	if (r >= 90 && r < 94) screen[y][x] = 13;
-	if (r >= 94 && r < 98) screen[y][x] = 14;
-	if (r >= 98) screen[y][x] = 15;
-
-	p = plist_front;
-	while (p != NULL)
-	{
-		if(screen[p->player->y][p->player->x] > 10) power_time(p->player);
-		p = p->next;
-	}
+	if (r < 45) screen[y][x] = BOMBS_UP;
+	if (r >= 45 && r < 90) screen[y][x] = RANGE_UP;
+	if (r >= 90 && r < 94) screen[y][x] = HEALTH_UP;
+	if (r >= 94 && r < 98) screen[y][x] = WALL_HACK;
+	if (r >= 98) screen[y][x] = IMMORTAL;
 }
 bool can_move(Player *player) {
-	return player->last_move + 100 <= iter_time;
+	return player->last_move + 200 <= iter_time;
 }
 bool can_pass(Player *player, int x)
 {
 	switch (x)
 	{
-	case 2:
-	case 4:
+	case STONE_WALL:
+	case BOMB:
 		return FALSE;
-	case 3:
-	case 6:
+	case WALL:
+	case WALL_ON_FIRE:
 		if (player->powers & 0x10) return TRUE;
 		else return FALSE;
 	default:
@@ -224,7 +220,7 @@ void move_logic(Player *player, int ydir, int xdir)
 	{
 		player->y = y;
 		player->x = x;
-		if (screen[y][x] > 10) power_time(player);
+		if (screen[y][x] >= POWER_START) power_time(player);
 	}
 }
 int do_action(Player *player)
@@ -252,7 +248,7 @@ int do_action(Player *player)
 			{
 			case 0:
 				player->bombs--;
-				screen[player->y][player->x] = 4;
+				screen[player->y][player->x] = BOMB;
 
 				/* Enqueue bomb */
 				b = (struct BombList*) malloc(sizeof(struct BombList));
@@ -331,33 +327,36 @@ void fire_queue(int y, int x)
 }
 void recycle_bomb(struct BombList *b)
 {
-	screen[b->bomb->y][b->bomb->x] = 0;
-	boom(b->bomb->y, b->bomb->x, b->bomb->range);
-	b->bomb->owner->bombs++;
+	if (b->bomb->owner) b->bomb->owner->bombs++;
 	if (b->prev == NULL) blist_front = b->next;
 	else b->prev->next = b->next;
 	if (b->next == NULL) blist_rear = b->prev;
 	else b->next->prev = b->prev;
+	free(b->bomb);
 	free(b);
 }
 int xplosion_logic(int y, int x)
 {
+	struct BombList *b;
 	struct FireList *f;
 
 	switch (screen[y][x])
 	{
-	case 0: /* Empty space */
-		screen[y][x] = 5;
+	case EMPTY:
+		screen[y][x] = FIRE;
 		fire_queue(y, x);
 		return 1;
-	case 3: /* Destructible walls and power-up generation */
+	case WALL:
 		fire_queue(y, x);
-		screen[y][x] = 6;
+		screen[y][x] = WALL_ON_FIRE;
 		break;
-	case 4: /* Bomb chain reaction */
-		recycle_bomb(get_bomb(y, x));
+	case BOMB:
+		b = get_bomb(y, x);
+		screen[b->bomb->y][b->bomb->x] = EMPTY;
+		boom(b->bomb->y, b->bomb->x, b->bomb->range);
+		recycle_bomb(b);
 		break;
-	case 5: /* Fire */
+	case FIRE:
 		f = get_fire(y, x);
 		f->start_time = iter_time;
 
@@ -374,12 +373,13 @@ int xplosion_logic(int y, int x)
 		else flist_rear->next = f;
 		flist_rear = f;
 		return 1;
-	case 11: /* Power-ups getting destroyed :'( */
-	case 12:
-	case 13:
-	case 14:
+	case BOMBS_UP: /* Power-ups getting destroyed :'( */
+	case RANGE_UP:
+	case HEALTH_UP:
+	case WALL_HACK:
+	case IMMORTAL:
 		fire_queue(y, x);
-		screen[y][x] = 7;
+		screen[y][x] = POWER_ON_FIRE;
 		break;
 	}
 	return 0;
@@ -412,23 +412,15 @@ void boom(int y, int x, int range)
 int game(void)
 {
     /* ~Initialization~ */
-	FILE *log = fopen("log.txt", "w");
-    extern WINDOW *game_win;
-    int i, ch, chl = 0, last_iter = clock(), time_start, time_end, wody = m - 1, wodx = 1, woddir = 4, wodinc = 0, wod_last = clock();
-	bool running = TRUE, wodstop = FALSE;
+	//FILE *log = fopen("log.txt", "w");
+    int i, j, ch, chl = 0, last_iter = clock(), time_start, time_end, wody = m - 1, wodx = 1, woddir = 4, wodinc = 0, wod_last = clock(), py, px, empty_spots;
+	bool running = TRUE, wodstop = FALSE, flagger = FALSE;
         
 	struct BombList *bpom;
 	struct PlayerList *ppom, *ppompom;
 	struct FireList *fpom;
 
-	Player player1, bot1, bot2, bot3;
-
 	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
-	
-	player1 = init_player(1, &player1, 1, 1);
-	if (num_bots > 0) bot1 = init_player(2, &bot1, m - 3, n - 2);
-	if (num_bots > 1) bot2 = init_player(3, &bot2, 1, n - 2);
-	if (num_bots > 2) bot3 = init_player(4, &bot3, m - 3, 1);
 	
 	srand(time(0));
 
@@ -441,6 +433,8 @@ int game(void)
     init_screen(m, n);
  
 	create_map(m, n, per);
+
+	init_players();
  
 	draw(screen,blist_front, plist_front);
  
@@ -466,62 +460,50 @@ int game(void)
 			running = FALSE;
 			break;
 		case 10:
-			nodelay(game_win, FALSE);
-			while (getch() != 10);
-			nodelay(game_win, TRUE);
-		}
-
-		if (player1.alive && can_move(&player1))//can_move(&player1)
-		{
-			switch (ch)
-			{
-			case KEY_RIGHT:
-			case 'd':
-				player1.action = 1;
-				break;
-			case KEY_DOWN:
-			case 's':
-				player1.action = 2;
-				break;
-			case KEY_LEFT:
-			case 'a':
-				player1.action = 3;
-				break;
-			case KEY_UP:
-			case 'w':
-				player1.action = 4;
-				break;
-			case ' ':
-				player1.action = 5;
-				break;
-			}
-			//chl = 0;
-			
-			if (player1.action && player1.action != 5) player1.last_move = iter_time;
-		}
-
-		if (num_bots > 0 && bot1.alive && can_move(&bot1))
-		{
-			bot_action(&bot1);
-			if (bot1.action && bot1.action != 5) bot1.last_move = iter_time;
-		}
-
-		if (num_bots > 1 && bot2.alive && can_move(&bot2))
-		{
-			bot_action(&bot2);
-			if (bot2.action && bot2.action != 5) bot2.last_move = iter_time;
-		}
-
-		if (num_bots > 2 && bot3.alive && can_move(&bot3))
-		{
-			bot_action(&bot3);
-			if (bot3.action && bot3.action != 5) bot3.last_move = iter_time;
+			pause();
 		}
 
 		/* Player update */
 		ppom = plist_front;
 		while (ppom != NULL)
 		{
+			if (ppom->player->id <= num_players && 1)//can_move(ppom->player)
+			{
+				switch (ch)
+				{
+				case KEY_RIGHT:
+				case 'd':
+					ppom->player->action = 1;
+					break;
+				case KEY_DOWN:
+				case 's':
+					ppom->player->action = 2;
+					break;
+				case KEY_LEFT:
+				case 'a':
+					ppom->player->action = 3;
+					break;
+				case KEY_UP:
+				case 'w':
+					ppom->player->action = 4;
+					break;
+				case ' ':
+					ppom->player->action = 5;
+					break;
+				}
+				//chl = 0;
+			
+				if (ppom->player->action && ppom->player->action != 5) ppom->player->last_move = iter_time;
+			}
+
+			if (ppom->player->id > num_players && can_move(ppom->player))
+			{
+				bot_action(ppom->player);
+				if (ppom->player->action && ppom->player->action != 5) ppom->player->last_move = iter_time;
+			}
+
+
+
 			if (ppom->player->action) 
 			{
 				do_action(ppom->player);
@@ -529,25 +511,58 @@ int game(void)
 			}
 			
 			if (ppom->player->immortal && ppom->player->immortal_start + 4 * CLOCKS_PER_SEC <= iter_time) ppom->player->immortal = FALSE;
-			if (screen[ppom->player->y][ppom->player->x] == 5 && ppom->player->immortal == FALSE)
+			if (screen[ppom->player->y][ppom->player->x] == FIRE && ppom->player->immortal == FALSE)
 			{
 				ppom->player->health--;
 				ppom->player->immortal = TRUE;
 				ppom->player->immortal_start = iter_time;
 				if (ppom->player->health == 0)
 				{
-					ppom->player->alive = FALSE;
+					bpom = blist_front;
+					while (bpom != NULL) 
+					{
+						if (bpom->bomb->owner && bpom->bomb->owner->id == ppom->player->id) bpom->bomb->owner = NULL;
+						bpom = bpom->next;
+					}
+
 					if (ppom->prev == NULL) plist_front = ppom->next;
 					else ppom->prev->next = ppom->next;
 					if (ppom->next == NULL) plist_rear = ppom->prev;
 					else ppom->next->prev = ppom->prev;
 					ppompom = ppom;
 					ppom = ppom->next;
+					free(ppompom->player);
 					free(ppompom);
-					if (plist_front->next == NULL)
+
+					/* Dropping powerups */
+					empty_spots = 0;
+					for (i = 1; i < m - 1; i++)
+						for (j = 1; j < n - 1; j++)
+							if (screen[i][j] == EMPTY) empty_spots++;
+					empty_spots = empty_spots > 5 ? 5 : empty_spots; // needs fixin!
+					for (i = 0; i < empty_spots; i++)
+					{
+							do
+							{
+									py = rand()%(m - 2) + 1;
+									px = rand()%(n - 2) + 1;
+							}
+							while (screen[py][px] != EMPTY);
+							gen_power(py, px);
+					}
+					ppompom = plist_front;
+					while (ppompom != NULL)
+					{
+						if(screen[ppompom->player->y][ppompom->player->x] > POWER_START) power_time(ppompom->player);
+						ppompom = ppompom->next;
+					}
+					
+					/* Last man standing? */
+					if (plist_front && plist_front->next == NULL)
 					{
 						plist_front->player->immortal = TRUE;
 						plist_front->player->immortal_start = iter_time + 3600 * CLOCKS_PER_SEC;
+						wodstop = TRUE;
 					}
 					continue;
 				}
@@ -560,6 +575,8 @@ int game(void)
 		bpom = blist_front;
 		if (bpom != NULL && bpom->bomb->start_time + 2 * CLOCKS_PER_SEC <= iter_time)	
 		{
+			screen[bpom->bomb->y][bpom->bomb->x] = EMPTY;
+			boom(bpom->bomb->y, bpom->bomb->x, bpom->bomb->range);
 			recycle_bomb(bpom);
 			bpom = blist_front;
 		}
@@ -571,12 +588,22 @@ int game(void)
 			/* Fire disposal */
 			switch (screen[fpom->y][fpom->x])
 			{
-			case 6:
-				if (rand() % 100 < 20) gen_power(fpom->y, fpom->x);
-				else screen[fpom->y][fpom->x] = 0;
+			case WALL_ON_FIRE:
+				if (rand() % 100 < POWER_CHANCE) 
+				{
+					gen_power(fpom->y, fpom->x);
+					
+					ppom = plist_front;
+					while (ppom != NULL)
+					{
+						if(screen[ppom->player->y][ppom->player->x] > POWER_START) power_time(ppom->player);
+						ppom = ppom->next;
+					}
+				}
+				else screen[fpom->y][fpom->x] = EMPTY;
 				break;
 			default:
-				screen[fpom->y][fpom->x] = 0;
+				screen[fpom->y][fpom->x] = EMPTY;
 			}
 			flist_front = fpom->next;
 			if (flist_front == NULL) flist_rear = NULL;
@@ -611,7 +638,8 @@ int game(void)
 				if (wodx > 1 + wodinc) wodx--;
 				else
 				{
-					if (wodinc == 2) wodstop = TRUE;
+					if (wodinc == 2) 
+						wodstop = TRUE;
 					else
 					{
 						woddir = 4;
@@ -634,16 +662,47 @@ int game(void)
 			{
 				if (ppom->player->y == wody && ppom->player->x == wodx)
 				{
-					ppom->player->alive = FALSE;
+					bpom = blist_front;
+					while (bpom != NULL) 
+					{
+						if (bpom->bomb->owner && bpom->bomb->owner->id == ppom->player->id) bpom->bomb->owner = NULL;
+						bpom = bpom->next;
+					}
+
 					if (ppom->prev == NULL) plist_front = ppom->next;
 					else ppom->prev->next = ppom->next;
 					if (ppom->next == NULL) plist_rear = ppom->prev;
 					else ppom->next->prev = ppom->prev;
 					ppompom = ppom;
 					ppom = ppom->next;
+					free(ppompom->player);
 					free(ppompom);
 					
-					if (plist_front->next == NULL)
+					/* Dropping powerups */
+					empty_spots = 0;
+					for (i = 1; i < m - 1; i++)
+						for (j = 1; j < n - 1; j++)
+							if (screen[i][j] == EMPTY) empty_spots++;
+					empty_spots = empty_spots > 5 ? 5 : empty_spots; // needs fixin!
+					for (i = 0; i < empty_spots; i++)
+					{
+							do
+							{
+									py = rand()%(m - 2) + 1;
+									px = rand()%(n - 2) + 1;
+							}
+							while (screen[py][px] != EMPTY);
+							gen_power(py, px);
+					}
+					ppompom = plist_front;
+					while (ppompom != NULL)
+					{
+						if(screen[ppompom->player->y][ppompom->player->x] > POWER_START) power_time(ppompom->player);
+						ppompom = ppompom->next;
+					}
+
+					/* Last man standing? */
+					if (plist_front && plist_front->next == NULL) // needs fixin!
 					{
 						plist_front->player->immortal = TRUE;
 						plist_front->player->immortal_start = iter_time + 3600 * CLOCKS_PER_SEC;
@@ -659,15 +718,11 @@ int game(void)
 			{
 			case BOMB:
 				bpom = get_bomb(wody, wodx);
-				if (bpom->prev == NULL) blist_front = bpom->next;
-				else bpom->prev->next = bpom->next;
-				if (bpom->next == NULL) blist_rear = bpom->prev;
-				else bpom->next->prev = bpom->prev;
-				free(bpom);
+				recycle_bomb(bpom);
 				break;
 			case FIRE:
-			case FIREWALL:
-			case FIREPOWER:
+			case WALL_ON_FIRE:
+			case POWER_ON_FIRE:
 				fpom = get_fire(wody, wodx);
 				if (fpom->prev == NULL) flist_front = fpom->next;
 				else fpom->prev->next = fpom->next;
@@ -694,12 +749,14 @@ int game(void)
 	{
 		bpom = blist_front;
 		blist_front = blist_front->next;
+		free(bpom->bomb);
 		free(bpom);
 	}
 	while (plist_front != NULL)
 	{
 		ppom = plist_front;
 		plist_front = plist_front->next;
+		free(ppom->player);
 		free(ppom);
 	}
 	while (flist_front != NULL)
@@ -715,7 +772,8 @@ int game(void)
     }
     free(screen);
 
-	fclose(log);
+	del_stuff();
+	//fclose(log);
 	
 	clear();
 	refresh();

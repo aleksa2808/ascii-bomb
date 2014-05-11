@@ -90,6 +90,7 @@ int main()
 			resize_term(25, 80);
 			break;
 		case 3:
+			delwin(menu_win);
 			clrtoeol();
 			refresh();
 			endwin();
@@ -97,7 +98,11 @@ int main()
 		}
 		choice = 0;
 	}	
-
+	
+	delwin(menu_win);
+	clrtoeol();
+	refresh();
+	endwin();
 	return 0;
 }
 

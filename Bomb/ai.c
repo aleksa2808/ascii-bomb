@@ -3,7 +3,7 @@
 
 typedef struct {
 	int id, x, y, health, bombs, bomb_range, action, immortal_start, last_move;
-	bool alive, immortal;
+	bool immortal;
 	unsigned char powers;
 } Player;
 typedef struct PlayerList {
@@ -21,13 +21,14 @@ Player *bot;
 
 /* A bunch of self explanatory functions! =D */
 
-int abs(int x)
+struct SearchResults* search_area()
 {
-    return (x > 0) ? x : -x;
+
 }
+
 bool safe(int y, int x)
 {
-	int i = 0, range = 100;
+	int i = 0, range = 10;
 	if (screen[y][x] == 5)
 		return FALSE;
 	while (i <= range) 
@@ -93,60 +94,81 @@ bool safe(int y, int x)
 }
 int safe_dir()
 {
-	int i, dir = 0, y = bot->y, x = bot->x, choices[4], num_choices = 0;
-	for (i = 1; i < 5; i++){
+	int i, dir = 0, y = bot->y, x = bot->x, choices[4], num_choices = 0, min = 5, ind = 0;
+	for (i = 1; i <= min; i++){
 		if (!can_pass(bot, screen[y][x + i]) || screen[y][x + i] == 5) break;
 		else 
 		{
 			if (safe(y, x + i) || (can_pass(bot, screen[y + 1][x + i]) && safe(y + 1, x + i)) || (can_pass(bot, screen[y - 1][x + i]) && safe(y - 1, x + i))) 
 			{
-				dir = 1;
-				//choices[num_choices] = 1;
-				//num_choices++;
+				min = i;
+				num_choices++;
+				choices[ind++] = 1;
 				break;
 			}
 		}
 	}
-	for (i = 1; i < 5; i++){
+	for (i = 1; i <= min; i++){
 		if (!can_pass(bot, screen[y + i][x]) || screen[y + i][x] == 5) break;
 		else 
 		{
 			if (safe(y + i, x) || (can_pass(bot, screen[y + i][x + 1]) && safe(y + i, x + 1)) || (can_pass(bot, screen[y + i][x - 1]) && safe(y + i, x - 1))) 
 			{
-				dir = 2;
-				//choices[num_choices] = 2;
-				//num_choices++;
+				if (i <= min)
+				{
+					choices[ind++] = 2;
+					if (i == min) num_choices++;
+					else
+					{
+						min = i;
+						num_choices = 1;
+					}
+				}
 				break;
 			}
 		}
 	}
-	for (i = 1; i < 5; i++){
+	for (i = 1; i <= min; i++){
 		if (!can_pass(bot, screen[y][x - i]) || screen[y][x - i] == 5) break;
 		else 
 		{
 			if (safe(y, x - i) || (can_pass(bot, screen[y + 1][x - i]) && safe(y + 1, x - i)) || (can_pass(bot, screen[y - 1][x - i]) && safe(y - 1, x - i))) 
 			{
-				dir = 3;
-				//choices[num_choices] = 3;
-				//num_choices++;
+				if (i <= min)
+				{
+					choices[ind++] = 3;
+					if (i == min) num_choices++;
+					else
+					{
+						min = i;
+						num_choices = 1;
+					}
+				}
 				break;
 			}
 		}
 	}
-	for (i = 1; i < 5; i++){
+	for (i = 1; i <= min; i++){
 		if (!can_pass(bot, screen[y - i][x]) || screen[y - i][x] == 5) break;
 		else 
 		{
 			if (safe(y - i, x) || (can_pass(bot, screen[y - i][x + 1]) && safe(y - i, x + 1)) || (can_pass(bot, screen[y - i][x - 1]) && safe(y - i, x - 1))) 
 			{
-				dir = 4;
-				//choices[num_choices] = 4;
-				//num_choices++;
+				if (i <= min)
+				{
+					choices[ind++] = 4;
+					if (i == min) num_choices++;
+					else
+					{
+						min = i;
+						num_choices = 1;
+					}
+				}
 				break;
 			}
 		}
 	}
-	return dir; //num_choices ? choices[rand() % num_choices] : 0;
+	return num_choices ? choices[--ind - rand() % num_choices] : 0;
 }
 int detect_powers()
 {
@@ -157,9 +179,7 @@ int detect_powers()
 bool players_nearby()
 {
 	int y = bot->y, x = bot->x, range = bot->bomb_range;
-	struct PlayerList *p;
-	p = plist_front;
-
+	struct PlayerList *p = plist_front;
 	while (p != NULL)
 	{
 		if (p->player->id != bot->id && abs(p->player->y - y) <= range && abs(p->player->x - x) <= range) return TRUE;
@@ -209,7 +229,7 @@ bool should_place_bomb()
 		}
 		for (i = 1; i <= range; i++) 
 		{
-			if (x - i > 1)
+			if (x - i > 0)
 				switch (screen[y][x - i])
 				{
 				case 3:
@@ -225,7 +245,7 @@ bool should_place_bomb()
 		}
 		for (i = 1; i <= range; i++) 
 		{
-			if (y - i > 1)
+			if (y - i > 0)
 				switch (screen[y - i][x])
 				{
 				case 3:
@@ -246,15 +266,17 @@ bool should_place_bomb()
 }
 void bot_action(Player *current_bot)
 {
-	int pdir, y = current_bot->y, x = current_bot->x;
+	int dir, y = current_bot->y, x = current_bot->x;
 	bot = current_bot;
 
 	if (!safe(y, x)) bot->action = safe_dir();
-	else if (pdir = detect_powers()) bot->action = pdir;
+	else if (dir = detect_powers()) bot->action = dir;
 	else if (bot->bombs && screen[y][x] == 0 && should_place_bomb()) bot->action = 5;
+	//else if (dir = detect_blocks()) bot->action = dir;
+	//else if (dir = detect_players()) bot->action = dir;
 	else 
 	{
-		switch (rand() % 5)
+		switch (rand() & 31)
 		{
 		case 1:
 			if (can_pass(bot, screen[y][x + 1]) && safe(y, x + 1)) bot->action = 1;

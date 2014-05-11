@@ -12,7 +12,7 @@ WINDOW *game_win, *hud_win;
 
 typedef struct {
 	int id, x, y, health, bombs, bomb_range, action, immortal_start, last_move;
-	bool alive, immortal;
+	bool immortal;
 	unsigned char powers;
 } Player;
 typedef struct { 
@@ -130,4 +130,9 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	k++;
 	if (k > 3000) k = 0;
 	wrefresh(game_win);
+}
+void del_stuff()
+{
+	delwin(game_win);
+	delwin(hud_win);
 }

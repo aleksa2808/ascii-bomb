@@ -11,13 +11,13 @@ WINDOW *game_win, *hud_win;
 #define downright (((screen[i+1][j]==3)&&(screen[i][j+1]==3)&&(screen[i+1][j+1]==3)?' ':(((screen[i+1][j]==3)&&(screen[i][j+1]==3))?0xDA:(((screen[i][j+1]==3)?0xC4:((screen[i+1][j]==3)?0xB3:0xD9))))))
 
 typedef struct {
-	int id, x, y, health, bombs, bomb_range, action, immortal_start, last_move;
+	int id, x, y, health, bombs, bomb_range, action, immortal_end, last_move;
 	bool immortal;
 	unsigned char powers;
 } Player;
 typedef struct { 
 	Player *owner;
-	int x, y, range, start_time;
+	int x, y, range, end_time;
 } Bomb;
 typedef struct BombList {
 	Bomb *bomb;
@@ -106,7 +106,7 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
     }
 	while (b != NULL){
 		wattron(game_win,COLOR_PAIR(5));
-		b->bomb->start_time + CLOCKS_PER_SEC >=clock()?((k%3==0?(c1=0xCF):k%3==1?(c1='*'):(c1='+')),c2=0xBF,c3=' ',c4='(',c5='_',c6=')'):((k%3==0?(c2=0xCF):k%3==1?(c2='*'):(c2='+')),c1=' ',c3=' ',c4='(',c5='_',c6=')');
+		b->bomb->end_time - CLOCKS_PER_SEC >=clock()?((k%3==0?(c1=0xCF):k%3==1?(c1='*'):(c1='+')),c2=0xBF,c3=' ',c4='(',c5='_',c6=')'):((k%3==0?(c2=0xCF):k%3==1?(c2='*'):(c2='+')),c1=' ',c3=' ',c4='(',c5='_',c6=')');
 		mvwprintw(game_win, b->bomb->y*2,b->bomb->x*3,"%c%c%c",c1,c2,c3);
 		mvwprintw(game_win, b->bomb->y*2+1,b->bomb->x*3,"%c%c%c",c4,c5,c6);
 		wattroff(game_win,COLOR_PAIR(5));

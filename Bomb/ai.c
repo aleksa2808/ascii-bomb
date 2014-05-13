@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 typedef struct {
-	int id, x, y, health, bombs, bomb_range, action, immortal_start, last_move;
+	int id, x, y, health, bombs, bomb_range, action, immortal_end, last_move;
 	bool immortal;
 	unsigned char powers;
 } Player;

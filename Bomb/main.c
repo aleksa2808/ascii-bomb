@@ -8,9 +8,9 @@ int startx = 0;
 int starty = 0;
 
 char *choices[] = { 
-			"Arena 1",
-			"Arena 2",
-			"Exit game"
+			"NORMAL MODE",
+			"BATTLE MODE",
+			"EXIT GAME"
 		  };
 int n_choices = sizeof(choices) / sizeof(char *);
 void print_menu(WINDOW *menu_win, int highlight);
@@ -24,6 +24,7 @@ int main()
 	int choice = 0;
 	int c;
 	int i;
+	int menu_start;
 	char *splash = "SPLASH", *screen = "SCREEN!";
 
 	initscr();
@@ -52,25 +53,41 @@ int main()
 
 	menu_win = newwin(HEIGHT, WIDTH, starty, startx);
 	keypad(menu_win, TRUE);
+    nodelay(menu_win, TRUE);
+	menu_start = clock();
 	while(1)
-	{	
+	{			
+		if (menu_start + 15 * CLOCKS_PER_SEC <= clock()) 
+		{
+			clear();
+			refresh();
+			game();
+			resize_term(25, 80);
+			menu_start = clock();
+		}
+
 		print_menu(menu_win, highlight);
 		c = wgetch(menu_win);
 		switch(c)
 		{	
 		case KEY_UP:
+			PlaySound(TEXT("sounds/select.wav"), NULL, SND_ASYNC | SND_FILENAME);
+			menu_start = clock();
 			if(highlight == 1)
 				highlight = n_choices;
 			else
 				--highlight;
 			break;
 		case KEY_DOWN:
+			PlaySound(TEXT("sounds/select.wav"), NULL, SND_ASYNC | SND_FILENAME);
+			menu_start = clock();
 			if(highlight == n_choices)
 				highlight = 1;
 			else 
 				++highlight;
 			break;
 		case 10:
+			PlaySound(TEXT("sounds/confirm.wav"), NULL, SND_ASYNC | SND_FILENAME);
 			choice = highlight;
 			break;
 		}
@@ -80,7 +97,7 @@ int main()
 		case 1:
 			clear();
 			refresh();
-			game();
+			//game();
 			resize_term(25, 80);
 			break;
 		case 2:
@@ -88,6 +105,7 @@ int main()
 			refresh();
 			game();
 			resize_term(25, 80);
+			menu_start = clock();
 			break;
 		case 3:
 			delwin(menu_win);

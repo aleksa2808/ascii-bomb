@@ -20,14 +20,20 @@
 #define WALL_HACK 14
 #define IMMORTAL 15
 
+#define GAME_TIME 120
+#define WOD_TIME 60
+#define BOMB_TIME 2
+#define FIRE_TIME 0.5
+#define IMMORTAL_TIME 4
+
 typedef struct {
-	int id, x, y, health, bombs, bomb_range, action, immortal_start, last_move;
+	int id, x, y, health, bombs, bomb_range, action, immortal_end, last_move;
 	bool immortal;
 	unsigned char powers;
 } Player;
 typedef struct { 
 	Player *owner;
-	int x, y, range, start_time;
+	int x, y, range, end_time, xdir, ydir, last_move;
 } Bomb;
 typedef struct BombList {
 	Bomb *bomb;
@@ -38,7 +44,7 @@ typedef struct PlayerList {
 	struct PlayerList *prev, *next;
 };
 typedef struct FireList {
-	int x, y, start_time;
+	int x, y, end_time;
 	struct FireList *prev, *next;
 };
 
@@ -46,7 +52,7 @@ char **screen;
 struct BombList *blist_front, *blist_rear;
 struct PlayerList *plist_front, *plist_rear;
 struct FireList *flist_front, *flist_rear;
-int iter_time, m = 13, n = 19, per = 80, num_players = 1, num_bots = 7;
+int iter_time, m = 13, n = 17, per = 80, num_players = 1, num_bots = 7;
 extern WINDOW *game_win;
 
 extern void init_screen(int, int);
@@ -156,10 +162,10 @@ void init_players()
 void pause(void)
 {
 	int pause_start = iter_time;
+	PlaySound(TEXT("sounds/pause.wav"), NULL, SND_ASYNC | SND_FILENAME);
 	nodelay(game_win, FALSE);
 	while (getch() != 10);
 	nodelay(game_win, TRUE);
-
 }
 void power_time(Player *player)
 {
@@ -179,7 +185,7 @@ void power_time(Player *player)
 		break;
 	case IMMORTAL:
 		player->immortal = TRUE;
-		player->immortal_start = iter_time;
+		player->immortal_end = iter_time + IMMORTAL_TIME * CLOCKS_PER_SEC;
 		break;
 	}
 	screen[player->y][player->x] = EMPTY;
@@ -193,6 +199,34 @@ void gen_power(int y, int x)
 	if (r >= 90 && r < 94) screen[y][x] = HEALTH_UP;
 	if (r >= 94 && r < 98) screen[y][x] = WALL_HACK;
 	if (r >= 98) screen[y][x] = IMMORTAL;
+}
+struct BombList* get_bomb(int y, int x)
+{
+	struct BombList *b = blist_front;
+	while (b != NULL)
+	{
+		if (b->bomb->y == y && b->bomb->x == x) 
+		{
+			return b;
+			break;
+		}
+		b = b->next;
+	}
+	return b;
+}
+struct FireList* get_fire(int y, int x)
+{
+	struct FireList *f = flist_front;
+	while (f != NULL)
+	{
+		if (f->y == y && f->x == x) 
+		{
+			return f;
+			break;
+		}
+		f = f->next;
+	}
+	return f;
 }
 bool can_move(Player *player) {
 	return player->last_move + 200 <= iter_time;
@@ -215,7 +249,15 @@ bool can_pass(Player *player, int x)
 void move_logic(Player *player, int ydir, int xdir)
 {
 	int y = player->y + ydir, x = player->x + xdir;
-	
+	struct BombList *b;
+
+	if (screen[y][x] == 4 && 1)
+	{
+		b = get_bomb(y, x);
+		b->bomb->ydir = ydir;
+		b->bomb->xdir = xdir;
+		b->bomb->last_move = 0;
+	}
 	if (can_pass(player, screen[y][x]))
 	{
 		player->y = y;
@@ -255,9 +297,11 @@ int do_action(Player *player)
 				b->bomb = (Bomb*) malloc(sizeof(Bomb));
 				b->bomb->owner = player;
 				b->bomb->range = player->bomb_range;
-				b->bomb->start_time = iter_time;
+				b->bomb->end_time = iter_time + BOMB_TIME * CLOCKS_PER_SEC;
 				b->bomb->x = player->x;
 				b->bomb->y = player->y;
+				b->bomb->xdir = 0;
+				b->bomb->ydir = 0;
 				b->next = NULL;
 				if (blist_rear == NULL) 
 				{
@@ -278,40 +322,12 @@ int do_action(Player *player)
     }
 	return 0;
 }
-struct BombList* get_bomb(int y, int x)
-{
-	struct BombList *b = blist_front;
-	while (b != NULL)
-	{
-		if (b->bomb->y == y && b->bomb->x == x) 
-		{
-			return b;
-			break;
-		}
-		b = b->next;
-	}
-	return b;
-}
-struct FireList* get_fire(int y, int x)
-{
-	struct FireList *f = flist_front;
-	while (f != NULL)
-	{
-		if (f->y == y && f->x == x) 
-		{
-			return f;
-			break;
-		}
-		f = f->next;
-	}
-	return f;
-}
 void fire_queue(int y, int x)
 {
 	struct FireList *f = (struct FireList*) malloc(sizeof(struct FireList));
 	f->x = x;
 	f->y = y;
-	f->start_time = iter_time;
+	f->end_time = iter_time + FIRE_TIME * CLOCKS_PER_SEC;
 	f->next = NULL;
 	if (flist_rear == NULL) 
 	{
@@ -352,13 +368,11 @@ int xplosion_logic(int y, int x)
 		break;
 	case BOMB:
 		b = get_bomb(y, x);
-		screen[b->bomb->y][b->bomb->x] = EMPTY;
-		boom(b->bomb->y, b->bomb->x, b->bomb->range);
-		recycle_bomb(b);
+		if (b->bomb->end_time > iter_time + 50) b->bomb->end_time = iter_time + 50;
 		break;
 	case FIRE:
 		f = get_fire(y, x);
-		f->start_time = iter_time;
+		f->end_time = iter_time + FIRE_TIME * CLOCKS_PER_SEC;
 
 		/* "We should take this fire...
 			and push it somewhere else!" */
@@ -387,6 +401,8 @@ int xplosion_logic(int y, int x)
 void boom(int y, int x, int range)
 {
 	int i;
+	
+	PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
 
 	for (i = 0; i <= range; i++)
 	{
@@ -416,7 +432,7 @@ int game(void)
     int i, j, ch, chl = 0, last_iter = clock(), time_start, time_end, wody = m - 1, wodx = 1, woddir = 4, wodinc = 0, wod_last = clock(), py, px, empty_spots;
 	bool running = TRUE, wodstop = FALSE, flagger = FALSE;
         
-	struct BombList *bpom;
+	struct BombList *bpom, *bpompom;
 	struct PlayerList *ppom, *ppompom;
 	struct FireList *fpom;
 
@@ -439,7 +455,7 @@ int game(void)
 	draw(screen,blist_front, plist_front);
  
 	time_start = clock();
-	time_end = time_start + 120 * CLOCKS_PER_SEC;
+	time_end = time_start + GAME_TIME * CLOCKS_PER_SEC;
 
     /* ~The Game Loop!~ */
 	while (running)
@@ -467,6 +483,8 @@ int game(void)
 		ppom = plist_front;
 		while (ppom != NULL)
 		{
+			ppom->player->action = 0;
+
 			if (ppom->player->id <= num_players && 1)//can_move(ppom->player)
 			{
 				switch (ch)
@@ -495,27 +513,28 @@ int game(void)
 			
 				if (ppom->player->action && ppom->player->action != 5) ppom->player->last_move = iter_time;
 			}
-
+			
 			if (ppom->player->id > num_players && can_move(ppom->player))
 			{
 				bot_action(ppom->player);
 				if (ppom->player->action && ppom->player->action != 5) ppom->player->last_move = iter_time;
 			}
 
+			ppom = ppom->next;
+		}
 
-
+		ppom = plist_front;
+		while (ppom != NULL)
+		{
 			if (ppom->player->action) 
-			{
 				do_action(ppom->player);
-				ppom->player->action = 0;
-			}
 			
-			if (ppom->player->immortal && ppom->player->immortal_start + 4 * CLOCKS_PER_SEC <= iter_time) ppom->player->immortal = FALSE;
+			if (ppom->player->immortal && ppom->player->immortal_end <= iter_time) ppom->player->immortal = FALSE;
 			if (screen[ppom->player->y][ppom->player->x] == FIRE && ppom->player->immortal == FALSE)
 			{
 				ppom->player->health--;
 				ppom->player->immortal = TRUE;
-				ppom->player->immortal_start = iter_time;
+				ppom->player->immortal_end = iter_time + IMMORTAL_TIME * CLOCKS_PER_SEC;
 				if (ppom->player->health == 0)
 				{
 					bpom = blist_front;
@@ -561,7 +580,7 @@ int game(void)
 					if (plist_front && plist_front->next == NULL)
 					{
 						plist_front->player->immortal = TRUE;
-						plist_front->player->immortal_start = iter_time + 3600 * CLOCKS_PER_SEC;
+						plist_front->player->immortal_end = iter_time + 3600 * CLOCKS_PER_SEC;
 						wodstop = TRUE;
 					}
 					continue;
@@ -571,19 +590,67 @@ int game(void)
 		}
 		//if (plist_front == NULL) running = FALSE;
 
-		/* Bomb clear */
+		/* Bomb update */
 		bpom = blist_front;
-		if (bpom != NULL && bpom->bomb->start_time + 2 * CLOCKS_PER_SEC <= iter_time)	
+		while (bpom != NULL)	
 		{
-			screen[bpom->bomb->y][bpom->bomb->x] = EMPTY;
-			boom(bpom->bomb->y, bpom->bomb->x, bpom->bomb->range);
-			recycle_bomb(bpom);
-			bpom = blist_front;
+			if (bpom->bomb->end_time <= iter_time)
+			{
+				screen[bpom->bomb->y][bpom->bomb->x] = EMPTY;
+				boom(bpom->bomb->y, bpom->bomb->x, bpom->bomb->range);
+				bpompom = bpom->next; // D:<
+				recycle_bomb(bpom);
+				bpom = bpompom;
+			}
+			else 
+			{   // UNDER CONSTRUCTION
+				if ((bpom->bomb->ydir || bpom->bomb->xdir) && bpom->bomb->last_move + 0.01 * CLOCKS_PER_SEC <= iter_time)
+				{
+					switch (screen[bpom->bomb->y + bpom->bomb->ydir][bpom->bomb->x + bpom->bomb->xdir])
+					{
+					case 0:
+						ppom = plist_front;
+						while (ppom != NULL)
+						{
+							if(ppom->player->y == bpom->bomb->y + bpom->bomb->ydir && ppom->player->x == bpom->bomb->x + bpom->bomb->xdir) break;
+							ppom = ppom->next;
+						}
+						if (ppom == NULL)
+						{
+							screen[bpom->bomb->y][bpom->bomb->x] = 0;
+							bpom->bomb->y += bpom->bomb->ydir;
+							bpom->bomb->x += bpom->bomb->xdir;
+							screen[bpom->bomb->y][bpom->bomb->x] = 4;
+							bpom->bomb->last_move = iter_time;
+						}
+						else
+						{
+							bpom->bomb->ydir = 0;
+							bpom->bomb->xdir = 0;
+						}
+						bpom = bpom->next;
+						break;
+					case 5:
+						screen[bpom->bomb->y][bpom->bomb->x] = EMPTY;
+						boom(bpom->bomb->y + bpom->bomb->ydir, bpom->bomb->x + bpom->bomb->xdir, bpom->bomb->range);
+						bpompom = bpom->next; // D:<
+						recycle_bomb(bpom);
+						bpom = bpompom;
+						break;
+					default:
+						bpom->bomb->ydir = 0;
+						bpom->bomb->xdir = 0;
+						bpom = bpom->next;
+						break;
+					}
+				}
+				else bpom = bpom->next;
+			}
 		}
 		
-		/* Fire clear */
+		/* Fire update */
 		fpom = flist_front;
-		while (fpom != NULL && fpom->start_time + 0.5 * CLOCKS_PER_SEC <= iter_time)
+		while (fpom != NULL && fpom->end_time <= iter_time)
 		{
 			/* Fire disposal */
 			switch (screen[fpom->y][fpom->x])
@@ -613,7 +680,7 @@ int game(void)
 		}
 
 		/* Wall of Death */
-		if (!wodstop && time_start + 60 * CLOCKS_PER_SEC <= iter_time && wod_last + 0.2 * CLOCKS_PER_SEC <= iter_time)
+		while (!wodstop && time_start + WOD_TIME * CLOCKS_PER_SEC <= iter_time && wod_last + 0.2 * CLOCKS_PER_SEC <= iter_time)
 		{
 			switch (woddir)
 			{
@@ -655,7 +722,9 @@ int game(void)
 					wodx++;
 				}
 				break;
-			}			
+			}
+
+			if (screen[wody][wodx] == 2) continue;
 			
 			ppom = plist_front;
 			while (ppom != NULL)
@@ -705,7 +774,7 @@ int game(void)
 					if (plist_front && plist_front->next == NULL) // needs fixin!
 					{
 						plist_front->player->immortal = TRUE;
-						plist_front->player->immortal_start = iter_time + 3600 * CLOCKS_PER_SEC;
+						plist_front->player->immortal_end = iter_time + 3600 * CLOCKS_PER_SEC;
 						wodstop = TRUE;
 					}
 					continue;
@@ -733,13 +802,15 @@ int game(void)
 			screen[wody][wodx] = STONE_WALL;
 
 			wod_last = iter_time;
+
+			break;
 		}
 		
 		if (time_end <= iter_time) running = FALSE; // time up!
 
 		draw(screen,blist_front, plist_front);
 
-		Sleep(33 - (clock() - iter_time)); // 30 FPS
+		if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
     }
  
  

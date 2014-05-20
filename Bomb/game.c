@@ -445,7 +445,7 @@ int game(int mod)
 	}
 	if (mod==0){
 		num_players--;
-		num_bots;
+		num_bots++;
 	}
 
     screen = (char**) malloc(m * sizeof(char*));

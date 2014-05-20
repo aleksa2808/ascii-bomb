@@ -9,6 +9,7 @@ int starty = 0;
 
 char *choices[] = { 
 			"NORMAL MODE",
+			"MULTIPLAYER MODE",
 			"BATTLE MODE",
 			"EXIT GAME"
 		  };
@@ -61,7 +62,7 @@ int main()
 		{
 			clear();
 			refresh();
-			game();
+			game(0);
 			resize_term(25, 80);
 			menu_start = clock();
 		}
@@ -87,6 +88,7 @@ int main()
 				++highlight;
 			break;
 		case 10:
+		case ' ':
 			PlaySound(TEXT("sounds/confirm.wav"), NULL, SND_ASYNC | SND_FILENAME);
 			choice = highlight;
 			break;
@@ -97,17 +99,24 @@ int main()
 		case 1:
 			clear();
 			refresh();
-			//game();
+			//game(1);
 			resize_term(25, 80);
 			break;
 		case 2:
 			clear();
 			refresh();
-			game();
+			game(2);
 			resize_term(25, 80);
 			menu_start = clock();
 			break;
 		case 3:
+			clear();
+			refresh();
+			game(1);
+			resize_term(25, 80);
+			menu_start = clock();
+			break;
+		case 4:
 			delwin(menu_win);
 			clrtoeol();
 			refresh();

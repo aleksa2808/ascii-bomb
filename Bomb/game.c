@@ -425,7 +425,7 @@ void boom(int y, int x, int range)
 		break;
 	}
 }
-int game(void)
+int game(int mod)
 {
     /* ~Initialization~ */
 	//FILE *log = fopen("log.txt", "w");
@@ -439,6 +439,14 @@ int game(void)
 	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 	
 	srand(time(0));
+	if (mod==2){
+		num_players++;
+		num_bots--;
+	}
+	if (mod==0){
+		num_players--;
+		num_bots;
+	}
 
     screen = (char**) malloc(m * sizeof(char*));
     for (i = 0; i < m; i++)
@@ -485,32 +493,47 @@ int game(void)
 		{
 			ppom->player->action = 0;
 
-			if (ppom->player->id <= num_players && 1)//can_move(ppom->player)
+			if (ppom->player->id <= num_players)//can_move(ppom->player)
 			{
+				if(ppom->player->id==1)
 				switch (ch)
 				{
 				case KEY_RIGHT:
-				case 'd':
 					ppom->player->action = 1;
 					break;
 				case KEY_DOWN:
-				case 's':
 					ppom->player->action = 2;
 					break;
 				case KEY_LEFT:
-				case 'a':
 					ppom->player->action = 3;
 					break;
 				case KEY_UP:
-				case 'w':
 					ppom->player->action = 4;
 					break;
 				case ' ':
 					ppom->player->action = 5;
 					break;
 				}
+				if(ppom->player->id==2 || mod==1)
+				switch (ch)
+				{
+				case 'd':
+					ppom->player->action = 1;
+					break;
+				case 's':
+					ppom->player->action = 2;
+					break;
+				case 'a':
+					ppom->player->action = 3;
+					break;
+				case 'w':
+					ppom->player->action = 4;
+					break;
+				case 'g':
+					ppom->player->action = 5;
+					break;
 				//chl = 0;
-			
+				}
 				if (ppom->player->action && ppom->player->action != 5) ppom->player->last_move = iter_time;
 			}
 			
@@ -842,7 +865,8 @@ int game(void)
         free(screen[i]);
     }
     free(screen);
-
+	num_players = 1;
+	num_bots= 7;
 	del_stuff();
 	//fclose(log);
 	

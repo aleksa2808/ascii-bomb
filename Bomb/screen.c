@@ -41,7 +41,8 @@ typedef struct PlayerList {
 	Player *player;
 	struct PlayerList *prev, *next;
 };
-Sprite sprPlayer[4],sprMap[MAP_SPRITE_NUM],sprBomb[3];
+extern Sprite sprPlayer[10];
+Sprite sprMap[MAP_SPRITE_NUM],sprBomb[3];
 
 
 
@@ -60,7 +61,7 @@ void init_screen(int mm, int nn)
 	for (i=1;i<10;i++) playercolor[i]= 13;
     resize_term(10 + m * 4,n * 6+4);
  
-    start_color();
+    
 
 	/*
     init_pair(1, COLOR_GREEN, COLOR_GREEN);
@@ -76,9 +77,6 @@ void init_screen(int mm, int nn)
     init_pair(15, 0, 11);
     init_pair(16, 0, 10);
     */
-	for (i=0;i<16;i++)
-		for (j=0;j<16;j++)
-			init_pair(16*i+j,i,j);
 
 
     game_win = newwin(m * 4, n * 6, 5, 3);
@@ -91,26 +89,7 @@ void init_screen(int mm, int nn)
 	*/
 
 	/*Reading the sprites*/
-	dat = fopen("data/playersprites.txt","r");
-	for (i=0;i<4;i++)
-		for (j=0;j<6;j++)
-			sprPlayer[0].ch[i][j]=0xDF;
-	for (i=0;i<4;i++){
-		for (j=0;j<6;j++){
-			fscanf(dat,"%c",&t1);
-			if (t1=='x'){
-				fscanf(dat,"%d%c%c",&l,&t1,&t2);
-				sprPlayer[0].ch[i][j]=l;
-			}
-			else fscanf(dat,"%c",&t2);
-			if (t1==t2) sprPlayer[0].ch[i][j]=' ';
-			sprPlayer[0].col1[i][j]=t1-'a';
-			sprPlayer[0].col2[i][j]=t2-'a';
-		}
-		fscanf(dat,"%c",&t1);
-	}
-	sprPlayer[1]=sprPlayer[2]=sprPlayer[3]=sprPlayer[0];
-	fclose(dat);
+
 
 	dat = fopen("data/mapsprites.txt","r");
 	for (k=0;k<MAP_SPRITE_NUM;k++){
@@ -254,7 +233,6 @@ void draw_player(int posx, int posy, Sprite spr, Sprite bckgr, int ID, int immo)
 					wattron(game_win,COLOR_PAIR(col1*16+col2));
 					mvwprintw(game_win, posx*4+i, posy*6+j,"%c",(col1==0&&col2==0)?' ':spr.ch[i][j]);
 					wattroff(game_win,COLOR_PAIR(col1*16+col2));
-
 				}
 	}
 	else {for (i=0;i<4;i++)
@@ -326,6 +304,7 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	}*/
 	k++;
 	if (k > 3000) k = 0;
+	//if (k%1000==0) clear();
 	wrefresh(game_win);
 }
 void del_stuff()

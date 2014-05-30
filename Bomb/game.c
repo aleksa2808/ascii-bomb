@@ -55,6 +55,7 @@ struct FireList *flist_front, *flist_rear;
 int iter_time, m = 13, n = 17, per = 80, num_players = 1, num_bots = 7;
 extern WINDOW *game_win;
 
+extern int sdon;
 extern void init_screen(int, int);
 extern void draw(char**, struct BombList*, struct PlayerList*);
 extern void del_stuff(void);
@@ -162,9 +163,9 @@ void init_players()
 void pause(void)
 {
 	int pause_start = iter_time;
-	PlaySound(TEXT("sounds/pause.wav"), NULL, SND_ASYNC | SND_FILENAME);
+	if (sdon) PlaySound(TEXT("sounds/pause.wav"), NULL, SND_ASYNC | SND_FILENAME);
 	nodelay(game_win, FALSE);
-	while (getch() != 10);
+	while (wgetch(game_win) != 10);
 	nodelay(game_win, TRUE);
 }
 void power_time(Player *player)
@@ -402,7 +403,7 @@ void boom(int y, int x, int range)
 {
 	int i;
 	
-	PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
+	if (sdon) PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
 
 	for (i = 0; i <= range; i++)
 	{
@@ -828,9 +829,8 @@ int game(int mod)
 
 			break;
 		}
-		
-		if (time_end <= iter_time) running = FALSE; // time up!
 
+		if (time_end <= iter_time) running = FALSE; // time up!
 		draw(screen,blist_front, plist_front);
 
 		if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS

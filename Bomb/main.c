@@ -2,6 +2,7 @@
 #include <Windows.h>
 #include <time.h>
 #include <stdio.h>
+#include <stdlib.h>
 #define WIDTH 30
 #define HEIGHT 20 
 #define MAP_SPRITE_NUM 16
@@ -38,7 +39,8 @@ struct m_list choices[10];
 short menu_size;
 void print_menu(WINDOW*, int, struct m_list);
 
-extern int game(int);
+extern int campaign(void);
+extern int battle(int, int);
 void updConfigs();
 
 
@@ -56,8 +58,9 @@ int main()
 	int act_menu, ret_menu;
 	int ptr;
 	int len;
-
 	
+	srand(time(0));
+		
 	//configs
 	dat = fopen ("data/configs.txt","r");
 	if (dat!=NULL) {
@@ -158,7 +161,7 @@ int main()
 		if ( demoon &&(menu_start + 15 * CLOCKS_PER_SEC <= clock())) {
 			clear();
 			refresh();
-			game(0);
+			battle(0, 8);
 			resize_term(60,150);
 			menu_start = clock();
 		}
@@ -179,6 +182,7 @@ int main()
 				else ptr++;
 				break;
 			case ' ': case 10:
+				if(sdon) PlaySound(TEXT("sounds/confirm.wav"), NULL, SND_ASYNC | SND_FILENAME);
 				switch(choices[act_menu].men[ptr].id){
 					case 10: 
 						act_menu = 1;
@@ -191,17 +195,24 @@ int main()
 						refresh();
 						endwin();
 						return 0;
+					case 20:
+						clear();
+						refresh();
+						campaign();
+						resize_term(60,150);
+						menu_start = clock();
+						break;
 					case 21:
 						clear();
 						refresh();
-						game(2);
+						battle(2, 6);
 						resize_term(60,150);
 						menu_start = clock();
 						break;
 					case 22:
 						clear();
 						refresh();
-						game(1);
+						battle(1, 7);
 						resize_term(60, 150);
 						menu_start = clock();
 						break;
@@ -231,7 +242,6 @@ int main()
 						wclear(menu_win);
 						break;
 				}
-				if(sdon) PlaySound(TEXT("sounds/confirm.wav"), NULL, SND_ASYNC | SND_FILENAME);
 				break;
 			case 27: 
 				if (choices[act_menu].ret>=0) {

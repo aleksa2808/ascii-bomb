@@ -38,7 +38,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <LinkIncremental>true</LinkIncremental>
+    <LinkIncremental>false</LinkIncremental>
     <IncludePath>C:\curses;$(IncludePath)</IncludePath>
     <LibraryPath>C:\curses\win32;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
@@ -85,9 +85,6 @@
     <ClCompile Include="game.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="screen.c" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="bomb.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

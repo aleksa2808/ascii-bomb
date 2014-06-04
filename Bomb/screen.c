@@ -44,7 +44,7 @@ typedef struct PlayerList {
 extern Sprite sprPlayer[10];
 Sprite sprMap[MAP_SPRITE_NUM],sprBomb[3];
 
-
+extern int time_end, iter_time;
 
 void init_screen(int mm, int nn)
 {	FILE *dat;
@@ -59,7 +59,7 @@ void init_screen(int mm, int nn)
 	k=0;
 	playercolor[0] = 14;
 	for (i=1;i<10;i++) playercolor[i]= 13;
-    resize_term(10 + m * 4,n * 6+4);
+    resize_term(6 + m * 4,n * 6);
  
     
 
@@ -79,14 +79,14 @@ void init_screen(int mm, int nn)
     */
 
 
-    game_win = newwin(m * 4, n * 6, 5, 3);
+    game_win = newwin(m * 4, n * 6, 6, 0);
     keypad(game_win, TRUE);
     nodelay(game_win, TRUE);
         
-   /* hud_win = newwin(5, COLS, 0, 0);
+    hud_win = newwin(6, COLS, 0, 0);
     box(hud_win, 0, 0);
     mvwprintw(hud_win, 2, COLS / 2 - 9, "Bomberman! \\(^_^)/");
-	*/
+	wrefresh(hud_win);
 
 	/*Reading the sprites*/
 
@@ -306,6 +306,11 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	if (k > 3000) k = 0;
 	//if (k%1000==0) clear();
 	wrefresh(game_win);
+
+	/* HUD */
+    box(hud_win, 0, 0);
+    mvwprintw(hud_win, 2, COLS / 2 - 9, "Bomberman! \\(^_^)/        %d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
+	wrefresh(hud_win);
 }
 void del_stuff()
 {

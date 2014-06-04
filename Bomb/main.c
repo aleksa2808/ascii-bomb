@@ -40,7 +40,7 @@ short menu_size;
 void print_menu(WINDOW*, int, struct m_list);
 
 extern int campaign(void);
-extern int battle(int, int);
+extern int battle(int, int, int);
 void updConfigs();
 
 
@@ -161,7 +161,7 @@ int main()
 		if ( demoon &&(menu_start + 15 * CLOCKS_PER_SEC <= clock())) {
 			clear();
 			refresh();
-			battle(0, 8);
+			battle(0, 8, 1);
 			resize_term(60,150);
 			menu_start = clock();
 		}
@@ -205,14 +205,14 @@ int main()
 					case 21:
 						clear();
 						refresh();
-						battle(2, 6);
+						battle(2, 6, 2);
 						resize_term(60,150);
 						menu_start = clock();
 						break;
 					case 22:
 						clear();
 						refresh();
-						battle(1, 7);
+						battle(1, 7, 2);
 						resize_term(60, 150);
 						menu_start = clock();
 						break;

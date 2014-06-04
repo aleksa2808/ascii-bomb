@@ -10,6 +10,7 @@
 #define FIRE 5
 #define WALL_ON_FIRE 6
 #define POWER_ON_FIRE 7
+#define EXIT 8
 
 #define POWER_START 11
 #define BOMBS_UP 11
@@ -57,7 +58,7 @@ char **screen;
 struct BombList *blist_front, *blist_rear;
 struct PlayerList *plist_front, *plist_rear;
 struct FireList *flist_front, *flist_rear;
-int iter_time, m = 13, n = 17, per = 80;
+int time_end, iter_time, m = 13, n = 17, per = 80;
 
 extern WINDOW *game_win;
 
@@ -790,53 +791,95 @@ void free_stuff(void)
 int campaign(void)
 {
 	/* ~Initialization~ */
-    int ch, time_end, level = 1, win = -1;
-	bool running = TRUE;
-
+    int ch, lives = 5, level = 1, win, points = 0;
+	bool running;
+	
 	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 
-    init_screen(m, n);
+	init_screen(m, n);
 	create_map(level);
 	init_players(1, 0);
 	draw(screen, blist_front, plist_front);
- 
+	
 	time_end = clock() + GAME_TIME * CLOCKS_PER_SEC;
 
-    /* ~The Game Loop!~ */
-	while (running)
-    {
-		iter_time = clock();
-		
-		ch = wgetch(game_win);
+	while(1)
+	{
+		win = -1;
+		running = TRUE;
 
-		/* Function keys */
-		switch (ch)
+		/* ~The Game Loop!~ */
+		while (running)
 		{
-		case 27:
-			running = FALSE;
-			break;
-		case 10:
-			pause();
+			iter_time = clock();
+		
+			ch = wgetch(game_win);
+
+			/* Function keys */
+			switch (ch)
+			{
+			case 27:
+				running = FALSE;
+				break;
+			case 10:
+				pause();
+			}
+
+			player_action(ch, 1, 0);
+			player_update(FALSE);
+			bomb_update();
+			fire_update();
+
+			/* Game over? */
+			if (plist_front == NULL || time_end <= iter_time)
+			{
+				win = 0;
+				running = FALSE;
+			}
+			else if (plist_front->next == NULL && screen[plist_front->player->y][plist_front->player->x] == EXIT) 
+			{
+				win = 1;
+				running = FALSE;
+			}
+					
+			draw(screen, blist_front, plist_front);
+
+			if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
 		}
 
-		player_action(ch, 1, 0);
-		player_update(FALSE);
-		bomb_update();
-		fire_update();
-
-		/* Game over? */
-		if (plist_front == NULL || time_end <= iter_time) 
+		if (win == -1) break;
+		else if (win) 
 		{
-			win = 0;
-			running = FALSE;
+			free_stuff();
+
+			level++;
+			//transition();
+
+			blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
+
+			create_map(level);
+			plist_front->player->y = 1;
+			plist_front->player->x = 1;
+			draw(screen, blist_front, plist_front);
+	
+			time_end = clock() + GAME_TIME * CLOCKS_PER_SEC;
 		}
-		
-		draw(screen, blist_front, plist_front);
-
-		if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
-    }
-
-    /* Game over */
+		else
+		{
+			if (lives) 
+			{
+				lives--;
+				// death_animation();
+				init_players(1, 0);		
+			}
+			else 
+			{
+				// GAME OVER
+				break;
+			}
+		}
+	}
+	
 	free_stuff();
 	del_stuff();
 	
@@ -844,72 +887,95 @@ int campaign(void)
 	refresh();
     return 0;
 }
-int battle(int num_players, int num_bots)
+int battle(int num_players, int num_bots, int req_wins)
 {
     /* ~Initialization~ */
-    int ch, time_end, winner = -1;
-	bool running = TRUE;
-
+    int ch, winner;
+	bool running;
+	
 	struct WallOfDeath *w = NULL;
 
-	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
- 
-    init_screen(m, n);
-	create_map(0);
-	w = init_wod(w);
-	init_players(num_players, num_bots);
-	draw(screen,blist_front, plist_front);
- 
-	time_end = clock() + GAME_TIME * CLOCKS_PER_SEC;
-	w->wod_start = time_end - WOD_TIME * CLOCKS_PER_SEC;
+	int *scores = (int*) calloc(num_players + num_bots, sizeof(int));
 
-    /* ~The Game Loop!~ */
-	while (running)
-    {
-		iter_time = clock();
-		
-		ch = wgetch(game_win);
+	while (1)
+	{
+		winner = -1;
+		running = TRUE;
 
-		/* Function keys */
-		switch (ch)
+		blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
+	
+		init_screen(m, n);
+		create_map(0);
+		w = init_wod(w);
+		init_players(num_players, num_bots);
+		draw(screen,blist_front, plist_front);
+ 
+		time_end = clock() + GAME_TIME * CLOCKS_PER_SEC;
+		w->wod_start = time_end - WOD_TIME * CLOCKS_PER_SEC;
+
+		/* ~The Game Loop!~ */
+		while (running)
 		{
-		case 27:
-			running = FALSE;
-			break;
-		case 10:
-			pause();
+			iter_time = clock();
+		
+			ch = wgetch(game_win);
+
+			/* Function keys */
+			switch (ch)
+			{
+			case 27:
+				running = FALSE;
+				break;
+			case 10:
+				pause();
+			}
+
+			player_action(ch, num_players, num_bots);
+			player_update(TRUE);
+			bomb_update();
+			fire_update();
+			wod_update(w);
+
+			/* Game over? */
+			if (plist_front == NULL || plist_front->next == NULL || time_end <= iter_time)
+			{
+				running = FALSE;
+				w->wodstop = TRUE;
+
+				if (plist_front == NULL || time_end <= iter_time) winner = 0; // no winner
+				else if (plist_front->next == NULL)
+				{
+					winner = plist_front->player->id;
+					plist_front->player->immortal = TRUE;
+					plist_front->player->immortal_end = iter_time + 3600 * CLOCKS_PER_SEC;
+				}
+			}
+		
+			draw(screen, blist_front, plist_front);
+
+			if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
 		}
 
-		player_action(ch, num_players, num_bots);
-		player_update(TRUE);
-		bomb_update();
-		fire_update();
-		wod_update(w);
+		/* Game over */
+		// transition();
+		free_stuff();
 
-		/* Game over? */
-		if (plist_front == NULL || plist_front->next == NULL || time_end <= iter_time)
+		if (winner == -1) break;
+		else if (winner > 0) 
 		{
-			running = FALSE;
-			w->wodstop = TRUE;
-
-			if (plist_front == NULL || time_end <= iter_time) winner = 0; // no winner
-			else if (plist_front->next == NULL)
+			scores[winner - 1]++;
+			//scoreboard();
+			if (scores[winner - 1] == req_wins)
 			{
-				winner = plist_front->player->id;
-				plist_front->player->immortal = TRUE;
-				plist_front->player->immortal_end = iter_time + 3600 * CLOCKS_PER_SEC;
+				// CHAMPION!
+				break;
 			}
 		}
-		
-		draw(screen, blist_front, plist_front);
+	}
 
-		if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
-    }
-
-    /* Game over */
-	free_stuff();
+	free(scores);
 	del_stuff();
-	
+
 	clear();
 	refresh();
     return 0;

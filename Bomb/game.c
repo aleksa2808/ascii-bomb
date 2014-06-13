@@ -20,7 +20,7 @@
 #define IMMORTAL 15
 #define BOMB_PUSH 16
 
-#define STORY_TIME 600
+#define STORY_TIME 300
 #define GAME_TIME 120
 #define WOD_TIME 60
 #define BOMB_TIME 2
@@ -63,11 +63,14 @@ struct MobList *mlist_front, *mlist_rear;
 struct FireList *flist_front, *flist_rear;
 int time_end, iter_time, m, n, per, mode;
 
+// for lack of a better global // story mode stuff
+int points, health, bombs, range, powers, exitx, exity;
+
 extern WINDOW *game_win;
 
 extern int sdon;
 
-extern void init_screen(int, int);
+extern void init_screen(int, int, int);
 extern void draw(char**, struct BombList*, struct PlayerList*, struct MobList*);
 extern void del_stuff(void);
 
@@ -110,18 +113,39 @@ void create_map(int level)
                     screen[i][j] = STONE_WALL;
 
     /* Destructibles */
-    fill = (((m - 2) / 2 + 1) * (n - 2) + ((m - 2) / 2) * ((n - 2) / 2 + 1)); // Number of empty blocks
-    fill = fill * (per/100.0);
-    for (i = 0; i < fill; i++)
-    {
-            do
-            {
-                    my = rand()%(m - 2) + 1;
-                    mx = rand()%(n - 2) + 1;
-            }
-            while (screen[my][mx] != 0);
-            screen[my][mx] = WALL;
-    }
+	if (!(mode == 1 && level % 5 == 0)) // if not boss level
+	{
+		fill = (((m - 2) / 2 + 1) * (n - 2) + ((m - 2) / 2) * ((n - 2) / 2 + 1)); // Number of empty blocks
+		fill = fill * (per/100.0);
+		for (i = 0; i < fill; i++)
+		{
+				do
+				{
+						my = rand()%(m - 2) + 1;
+						mx = rand()%(n - 2) + 1;
+				}
+				while (screen[my][mx] != EMPTY);
+				screen[my][mx] = WALL;
+		}
+	}
+
+	/* Generate an exit in story mode */
+	if (mode == 1)
+		if (level % 5 != 0)
+		{
+			do
+			{
+					my = rand()%(m - 2) + 1;
+					mx = rand()%(n - 2) + 1;
+			}
+			while (!(screen[my][mx] == WALL && my > 3 && mx > 3));
+			exity = my, exitx = mx;
+		}
+		else
+		{
+			exity = 0;
+			exitx = 0;
+		}
 }
 struct WallOfDeath* init_wod(struct WallOfDeath *w)
 {
@@ -148,7 +172,7 @@ void spawn(int id, Player *player, int y, int x)
 	player->x = x;
 	player->health = 1;
 	player->bombs = 1;
-	player->bomb_range = mode; // story = 1 // battle = 2
+	player->bomb_range = 2;
 	player->immortal = FALSE;
 	player->powers = 0;
 	player->last_move = 0;
@@ -194,7 +218,7 @@ void init_players(int num_players, int num_bots)
 }
 void init_mobs(int level)
 {
-	int i, j, dir, mob_num = level + 2;
+	int i, j, dir, mob_num = (level + 2) % 7 + level / 5;
 	Player *player;
 	int x[8] = {n - 4, n - 2, 11, 5, 1, n - 8}, y[8] = {m - 8, 1, m - 2, m - 6, 9, 3};
 	int bias = rand() % 20;
@@ -317,15 +341,19 @@ void power_time(Player *player)
 	{
 	case BOMBS_UP:
 		player->bombs++;
+		if (mode == 1) bombs++;
 		break;
 	case RANGE_UP:
 		player->bomb_range++;
+		if (mode == 1) range++;
 		break;
 	case HEALTH_UP:
 		player->health++;
+		if (mode == 1) health++;
 		break;
 	case WALL_HACK:
 		player->powers |= 0x10;
+		if (mode == 1) powers |= 0x10;;
 		break;
 	case IMMORTAL:
 		player->immortal = TRUE;
@@ -333,6 +361,7 @@ void power_time(Player *player)
 		break;
 	case BOMB_PUSH:
 		player->powers |= 0x1;
+		if (mode == 1) powers |= 0x1;;
 	}
 	screen[player->y][player->x] = EMPTY;
 }
@@ -340,6 +369,7 @@ void gen_power(int y, int x)
 {
 	int r = rand() % 100;
 
+	/* "Loot tables" */
 	if (mode == 1)
 	{
 		if (r < 45) screen[y][x] = BOMBS_UP;
@@ -352,8 +382,8 @@ void gen_power(int y, int x)
 	else if (mode == 2)
 	{
 		if (r < 45) screen[y][x] = BOMBS_UP;
-		if (r >= 45 && r < 80) screen[y][x] = RANGE_UP;
-		if (r >= 80 && r < 90) screen[y][x] = BOMB_PUSH;
+		if (r >= 45 && r < 90) screen[y][x] = RANGE_UP;
+		if (r >= 90) screen[y][x] = BOMB_PUSH;
 	}
 }
 struct BombList* get_bomb(int y, int x)
@@ -510,6 +540,7 @@ void recycle_bomb(struct BombList *b)
 }
 int xplosion_logic(int y, int x)
 {
+	Player *player;
 	struct BombList *b;
 	struct FireList *f;
 
@@ -544,6 +575,27 @@ int xplosion_logic(int y, int x)
 		else flist_rear->next = f;
 		flist_rear = f;
 		return 1;
+	case EXIT:
+		player = (Player*) malloc(sizeof(Player));
+		player_queue(player);
+		player->id = -1;
+		player->type = 1;
+		player->y = y;
+		player->x = x;
+		player->health = 1;
+		player->bombs = 0;
+		player->bomb_range = 0;
+		player->immortal = TRUE;
+		player->immortal_end = iter_time + IMMORTAL_TIME * CLOCKS_PER_SEC;
+		player->powers = 0;
+		player->last_move = 0;
+		player->action = 0;
+		if (can_pass(player, screen[y][x + 1])) player->last_action = 1;
+		else if (can_pass(player, screen[y][x = 1])) player->last_action = 3;
+		else if (can_pass(player, screen[y + 1][x])) player->last_action = 2;
+		else player->last_action = 4;
+		player->speed = 500;
+		break;
 	case BOMBS_UP: /* Power-ups getting destroyed :'( */
 	case RANGE_UP:
 	case HEALTH_UP:
@@ -662,7 +714,7 @@ void player_action(int ch, int num_players, int num_bots)
 			if (p->player->action && p->player->action != 5) p->player->last_move = iter_time;
 		}
 			
-		if (p->player->id > num_players && p->player->id <= num_players + num_bots && can_move(p->player))
+		if (p->player->id > num_players && ((mode == 2 && p->player->id <= num_players + num_bots) || (mode == 1 && p->player->type == 0 && p->player->id > 4)) && can_move(p->player))
 		{
 			bot_action(p->player);
 			if (p->player->action && p->player->action != 5) p->player->last_move = iter_time;
@@ -709,8 +761,8 @@ void player_update(void)
 					b = b->next;
 				}
 
-				//if (p->player->type == 0)
-				//poeni++
+				if (mode == 1 && p->player->id > 0)
+					points += p->player->type * 50;
 
 				if (p->prev == NULL) plist_front = p->next;
 				else p->prev->next = p->next;
@@ -804,7 +856,9 @@ void fire_update(void)
 		/* Fire disposal */
 		if (screen[f->y][f->x] == WALL_ON_FIRE)
 		{
-			if (rand() % 100 < POWER_CHANCE) 
+			if (mode == 1 && (exity == f->y && exitx == f->x))
+				screen[f->y][f->x] = EXIT;
+			else if (rand() % 100 < POWER_CHANCE) 
 			{
 				gen_power(f->y, f->x);
 					
@@ -937,16 +991,24 @@ void free_stuff(void)
 int campaign(void)
 {
 	/* ~Initialization~ */
-    int ch, lives = 5, level = 1, win, points = 0;
+    int ch, lives = 5, level = 1, win;
 	bool running;
 	
 	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, mlist_front = NULL, mlist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 	
 	mode = 1, m = 11, n = 15, per = 50;
+	bombs = 1, range = 1, powers = 0, health = 1;
+	points = 0;
 
-	init_screen(m, n);
+	init_screen(m, n, (level - 1) / 5);
 	create_map(level);
 	init_players(1, 0);
+	//
+	plist_front->player->health = health;
+	plist_front->player->bombs = bombs;
+	plist_front->player->bomb_range = range;
+	plist_front->player->powers = powers;
+	//
 	init_mobs(level);
 	draw(screen, blist_front, plist_front, mlist_front);
 	
@@ -976,19 +1038,19 @@ int campaign(void)
 			case 10:
 				pause(&running);
 			}
-
-			player_action(ch, 1, 0);
+			
+			player_action(ch, 1, level % 5 == 0);
 			player_update();
 			bomb_update();
 			fire_update();
 
 			/* Game over? */
-			if (plist_front->player->id != 1 || plist_front == NULL || time_end <= iter_time)
+			if (plist_front == NULL || plist_front->player->id != 1 || time_end <= iter_time)
 			{
 				win = 0;
 				running = FALSE;
 			}
-			else if (plist_front->next == NULL && screen[plist_front->player->y][plist_front->player->x] == EXIT) 
+			else if (plist_front->next == NULL && (screen[plist_front->player->y][plist_front->player->x] == EXIT || level % 5 == 0))
 			{
 				win = 1;
 				running = FALSE;
@@ -1002,26 +1064,58 @@ int campaign(void)
 		if (win == -1) break;
 		else if (win) 
 		{
+			points += (time_end - iter_time) * 10;
 			free_stuff();
 
 			level++;
 			//transition();
-			
-			blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, mlist_front = NULL, mlist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 
-			create_map(level);
-			plist_front->player->y = 1;
-			plist_front->player->x = 1;
-			init_mobs(level);
-			draw(screen, blist_front, plist_front, mlist_front);
+			if (level == 21)
+			{
+				points += 500;
+				// HUZZAH! GAME COMPLETE!
+				break;
+			}
+			else
+			{
+				blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, mlist_front = NULL, mlist_rear = NULL, flist_front = NULL, flist_rear = NULL;
+
+				create_map(level);
+			
+				// Boss?
+				if (level % 5 == 0)
+				{
+					init_players(1, 1);
+					plist_front->player->y = m - 4;
+					plist_front->player->x = n / 2;
+
+					plist_front->next->player->id = 4 + level / 5;
+					plist_front->next->player->y = 3;
+					plist_front->next->player->x = n / 2;
+					plist_front->next->player->health = 2;
+					plist_front->next->player->bombs = 2 + level / 5; 
+					plist_front->next->player->bomb_range = 1 + level / 5;
+				}
+				else init_players(1, 0);
+								
+				plist_front->player->health = health;
+				plist_front->player->bombs = bombs;
+				plist_front->player->bomb_range = range;
+				plist_front->player->powers = powers;
+
+				init_mobs(level);
+				draw(screen, blist_front, plist_front, mlist_front);
 	
-			time_end = clock() + STORY_TIME * CLOCKS_PER_SEC;
+				time_end = clock() + STORY_TIME * CLOCKS_PER_SEC;
+			}
 		}
 		else
 		{
 			if (lives) 
 			{
 				lives--;
+				health = 1;
+				powers = 0;
 				init_players(1, 0);
 
 				// move to front
@@ -1031,6 +1125,11 @@ int campaign(void)
 				plist_rear = plist_rear->prev;
 				plist_rear->next = NULL;
 				plist_front->prev = NULL;
+
+				plist_front->player->health = health;
+				plist_front->player->bombs = bombs;
+				plist_front->player->bomb_range = range;
+				plist_front->player->powers = powers;
 			}
 			else 
 			{
@@ -1050,7 +1149,7 @@ int campaign(void)
 int battle(int num_players, int num_bots, int req_wins)
 {
     /* ~Initialization~ */
-    int ch, winner;
+    int ch, winner, arena = rand() % 2;
 	bool running;
 	
 	struct WallOfDeath *w = NULL;
@@ -1069,7 +1168,7 @@ int battle(int num_players, int num_bots, int req_wins)
 		
 		blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, mlist_front = NULL, mlist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 	
-		init_screen(m, n);
+		init_screen(m, n, arena);
 		create_map(0);
 		w = init_wod(w);
 		init_players(num_players, num_bots);

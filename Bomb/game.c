@@ -345,15 +345,15 @@ void gen_power(int y, int x)
 		if (r < 45) screen[y][x] = BOMBS_UP;
 		if (r >= 45 && r < 80) screen[y][x] = RANGE_UP;
 		if (r >= 80 && r < 90) screen[y][x] = BOMB_PUSH;
+		if (r >= 90 && r < 94) screen[y][x] = HEALTH_UP;
+		if (r >= 94 && r < 98) screen[y][x] = WALL_HACK;
+		if (r >= 98) screen[y][x] = IMMORTAL;		
 	}
 	else if (mode == 2)
 	{
 		if (r < 45) screen[y][x] = BOMBS_UP;
 		if (r >= 45 && r < 80) screen[y][x] = RANGE_UP;
 		if (r >= 80 && r < 90) screen[y][x] = BOMB_PUSH;
-		if (r >= 90 && r < 94) screen[y][x] = HEALTH_UP;
-		if (r >= 94 && r < 98) screen[y][x] = WALL_HACK;
-		if (r >= 98) screen[y][x] = IMMORTAL;
 	}
 }
 struct BombList* get_bomb(int y, int x)

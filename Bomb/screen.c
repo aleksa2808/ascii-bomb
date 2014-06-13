@@ -1,28 +1,15 @@
 #include <curses.h>
 #include <time.h>
 #include <stdlib.h>
-int m, n, k, background=2, playercolor[10];
+int m, n, k, background=2;
 WINDOW *game_win, *hud_win;
 #define MAP_SPRITE_NUM 16
 #define BOMB_TIME 2
-
-
-
-
-/*#define upleft (((screen[i-1][j]==3)&&(screen[i][j-1]==3)&&(screen[i-1][j-1]==3)?' ':(((screen[i-1][j]==3)&&(screen[i][j-1]==3))?0xD9:(((screen[i][j-1]==3)?0xC4:((screen[i-1][j]==3)?0xB3:0xDA))))))
-#define pureup	(screen[i-1][j]==3)?(' '):(0xC4)
-#define upright (((screen[i-1][j]==3)&&(screen[i][j+1]==3)&&(screen[i-1][j+1]==3)?' ':(((screen[i-1][j]==3)&&(screen[i][j+1]==3))?0xC0:(((screen[i][j+1]==3)?0xC4:((screen[i-1][j]==3)?0xB3:0xBF))))))
-#define downleft (((screen[i+1][j]==3)&&(screen[i][j-1]==3)&&(screen[i+1][j-1]==3)?' ':(((screen[i+1][j]==3)&&(screen[i][j-1]==3))?0xBF:(((screen[i][j-1]==3)?0xC4:((screen[i+1][j]==3)?0xB3:0xC0))))))
-#define puredown (screen[i+1][j]==3)?(' '):(0xC4)
-#define downright (((screen[i+1][j]==3)&&(screen[i][j+1]==3)&&(screen[i+1][j+1]==3)?' ':(((screen[i+1][j]==3)&&(screen[i][j+1]==3))?0xDA:(((screen[i][j+1]==3)?0xC4:((screen[i+1][j]==3)?0xB3:0xD9))))))*/
-
 
 typedef struct{
 	unsigned char ch[4][6];
 	short col1[4][6],col2[4][6];
 }	Sprite;
-
-
 
 typedef struct {
 	int id, type, x, y, health, bombs, bomb_range, action, last_action, immortal_end, last_move, speed;
@@ -51,15 +38,14 @@ void init_screen(int mm, int nn)
 	char t1,t2;
 	int i, j, l;
 
+	clear();
 
 
 
     m = mm;
     n = nn;
 	k=0;
-	playercolor[0] = 14;
-	for (i=1;i<10;i++) playercolor[i]= 13;
-    resize_term(6 + m * 4,n * 6);
+    resize_term(12 + m * 4,n * 6);
  
     
 
@@ -79,13 +65,12 @@ void init_screen(int mm, int nn)
     */
 
 
-    game_win = newwin(m * 4, n * 6, 6, 0);
+    game_win = newwin(m * 4, n * 6, 12, 0);
     keypad(game_win, TRUE);
     nodelay(game_win, TRUE);
         
-    hud_win = newwin(6, COLS, 0, 0);
+    hud_win = newwin(12, COLS, 0, 0);
     box(hud_win, 0, 0);
-    mvwprintw(hud_win, 2, COLS / 2 - 9, "Bomberman! \\(^_^)/");
 	wrefresh(hud_win);
 
 	/*Reading the sprites*/
@@ -210,48 +195,92 @@ void draw_bomb(int posx, int posy, Sprite spr, int k){
 		}
 
 }
-void draw_player(int posx, int posy, Sprite spr, Sprite bckgr, int ID, int immo){
+void draw_player(int posx, int posy, Sprite spr, Sprite bckgr, int ID, int immo, int trnp){
 	int i,j,col1,col2;
+	static int turn[10] = {0};
+	static int playercolor[10]= {15, 14, 13, 12, 11, 10, 9, 2};
+
+	if (trnp == 1) turn[ID]=0;
+	if (trnp == 3) turn[ID]=1;
 
 	if (immo == 0){
 		for (i=0;i<4;i++)
 			for (j=0;j<6;j++) 
-				if (!(spr.col1[i][j]==16 && spr.col2[i][j]==16)) {
-					if (spr.col1[i][j]==16)
+				if (!(spr.col1[ i ][ turn[ID]==0?j:5-j ]==16 && spr.col2[ i ][ turn[ID]==0?j:5-j ]==16)) {
+					if (spr.col1[ i ][ turn[ID]==0?j:5-j ]==16)
 						col1 = bckgr.col1[i][j]==16?background:bckgr.col1[i][j];
-					else if (spr.col1[i][j]==17)
+					else if (spr.col1[ i ][ turn[ID]==0?j:5-j ]==17)
 						col1 = playercolor[ID];
-						else col1 = spr.col1[i][j];
+						else col1 = spr.col1[ i ][ turn[ID]==0?j:5-j ];
 
-					if (spr.col2[i][j]==16)
+					if (spr.col2[ i ][ turn[ID]==0?j:5-j ]==16)
 						col2 = bckgr.col2[i][j]==16?background:bckgr.col2[i][j];
-					else if (spr.col2[i][j]==17)
+					else if (spr.col2[ i ][ turn[ID]==0?j:5-j ]==17)
 						col2 = playercolor[ID];
-						else col2 = spr.col2[i][j];
+						else col2 = spr.col2[ i ][ turn[ID]==0?j:5-j ];
 					
 
 					wattron(game_win,COLOR_PAIR(col1*16+col2));
-					mvwprintw(game_win, posx*4+i, posy*6+j,"%c",(col1==0&&col2==0)?' ':spr.ch[i][j]);
+					mvwprintw(game_win, posx*4+i, posy*6+j,"%c",(col1==0&&col2==0)?' ':spr.ch[i][ turn[ID]==0?j:5-j ]);
 					wattroff(game_win,COLOR_PAIR(col1*16+col2));
 				}
 	}
 	else {for (i=0;i<4;i++)
 			for (j=0;j<6;j++) 
-				if (!(spr.col1[i][j]==16 && spr.col2[i][j]==16)) {
-					if (spr.col1[i][j]==16)
+				if (!(spr.col1[ i ][ turn[ID]==0?j:5-j ]==16 && spr.col2[ i ][ turn[ID]==0?j:5-j ]==16)) {
+					if (spr.col1[ i ][ turn[ID]==0?j:5-j ]==16)
 						col1 = bckgr.col1[i][j]==16?background:bckgr.col1[i][j];
 					else col1=15;
-					if (spr.col2[i][j]==16)
+					if (spr.col2[ i ][ turn[ID]==0?j:5-j ]==16)
 						col2 = bckgr.col2[i][j]==16?background:bckgr.col2[i][j];
 					else col2 = 15;
 				
 					wattron(game_win,COLOR_PAIR(col2*16+col1));
-					mvwprintw(game_win, posx*4+i, posy*6+j,"%c",spr.ch[i][j]);
+					mvwprintw(game_win, posx*4+i, posy*6+j,"%c",spr.ch[ i ][ turn[ID]==0?j:5-j ]);
 					wattroff(game_win,COLOR_PAIR(col2*16+col1));
 
 				}
 	}
 }
+
+void draw_hudp(Sprite spr, int ID){
+	int i,j,col1,col2;
+	
+	static int playercolor[10]= {15, 14, 13, 12, 11, 10, 9, 2};
+
+	for (i=12*(ID)-7;i < 12*(ID) +1 ;i++){
+		wattron(hud_win,COLOR_PAIR(130));
+		mvwprintw(hud_win, 3, i, "%c", 0xDC);
+		mvwprintw(hud_win,8,i,"%c", 0xDF);
+		wattroff(hud_win, COLOR_PAIR(130));
+	}
+	for (i=4;i<8;i++){
+		wattron(hud_win,COLOR_PAIR(130));
+		mvwprintw(hud_win, i,12*(ID)-7, "%c",0xDB);
+		mvwprintw(hud_win,i,12*(ID),"%c",0xDB);
+		wattroff(hud_win, COLOR_PAIR(130));
+	}
+		for (i=0;i<4;i++)
+			for (j=0;j<6;j++) {
+					if (spr.col1[ i ][ j ]==16)
+						col1 = 3;
+					else if (spr.col1[ i ][ j ]==17)
+						col1 = playercolor[ID-1];
+						else col1 = spr.col1[ i ][ j ];
+
+					if (spr.col2[ i ][ j ]==16)
+						col2 = 3;
+					else if (spr.col2[ i ][ j ]==17)
+						col2 = playercolor[ID-1];
+						else col2 = spr.col2[ i ][ j ];
+					
+
+					wattron(hud_win,COLOR_PAIR(col1*16+col2));
+					mvwprintw(hud_win, i+4, j+12*(ID)-6,"%c",(col1==0&&col2==0)?' ':spr.ch[i][ j ]);
+					wattroff(hud_win,COLOR_PAIR(col1*16+col2));
+				}
+}
+
 void draw(char **screen, struct BombList *b, struct PlayerList *p)
 {	
     int i, j, pnum, clk;
@@ -271,46 +300,33 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 		else {draw_bomb (b->bomb->y,b->bomb->x,sprBomb[0],k);}
 		b=b->next;
 	}
+
+	// HUD initialization
+	wclear(hud_win);
+
+	wattron(hud_win,COLOR_PAIR(50));
+    for (i=0; i<COLS*12; i++) wprintw(hud_win, " ");
+	mvwprintw(hud_win, 2, COLS / 2 - 2, "%d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
+	
+	wattroff(hud_win, COLOR_PAIR(50));
+	i=0;
 	while (p){
 		if (p->player->immortal == TRUE && k % 20 > 10)
-			draw_player(p->player->y,p->player->x,sprPlayer[0],sprMap[screen[p->player->y][p->player->x]<=10?screen[p->player->y][p->player->x]:0],p->player->id<=4?p->player->id-1:3,1);
+			draw_player(p->player->y,p->player->x,sprPlayer[0],sprMap[screen[p->player->y][p->player->x]<=10?screen[p->player->y][p->player->x]:0],p->player->id-1,1, p->player->action);
 		else
-			draw_player(p->player->y,p->player->x,sprPlayer[0],sprMap[screen[p->player->y][p->player->x]<=10?screen[p->player->y][p->player->x]:0],p->player->id<=4?p->player->id-1:3,0);
+			draw_player(p->player->y,p->player->x,sprPlayer[0],sprMap[screen[p->player->y][p->player->x]<=10?screen[p->player->y][p->player->x]:0],p->player->id-1,0, p->player->action);
+		
+		// HUD player drawing
+		draw_hudp(sprPlayer[0],p->player->id);
 		p = p->next;
 	}
 	
-	/*while (b != NULL){
-		wattron(game_win,COLOR_PAIR(5));
-		b->bomb->end_time - CLOCKS_PER_SEC >=clock()?((k%3==0?(c1=0xCF):k%3==1?(c1='*'):(c1='+')),c2=0xBF,c3=' ',c4='(',c5='_',c6=')'):((k%3==0?(c2=0xCF):k%3==1?(c2='*'):(c2='+')),c1=' ',c3=' ',c4='(',c5='_',c6=')');
-		mvwprintw(game_win, b->bomb->y*2,b->bomb->x*3,"%c%c%c",c1,c2,c3);
-		mvwprintw(game_win, b->bomb->y*2+1,b->bomb->x*3,"%c%c%c",c4,c5,c6);
-		wattroff(game_win,COLOR_PAIR(5));
-
-		b=b->next;
-	}
-	while (p != NULL){
-		if (p->player->immortal == TRUE && k % 20 > 10)
-			wattron(game_win, COLOR_PAIR(1));
-		else
-			wattron(game_win, COLOR_PAIR(2));
-		
-		//c1=c3='_', c2='m', c4='(', c5='\"', c6=')';
-		mvwprintw(game_win, p->player->y*2,p->player->x*3,"%c%c%c",c1,c2,c3);
-		mvwprintw(game_win, p->player->y*2+1,p->player->x*3,"%c%c%c",c4,c5,c6);
-		if (p->player->immortal == TRUE && k % 20 > 10) wattroff(game_win, COLOR_PAIR(1));
-		else wattroff(game_win, COLOR_PAIR(2));
-
-		p = p->next;
-	}*/
+	
 	k++;
 	if (k > 3000) k = 0;
-	//if (k%1000==0) clear();
 	wrefresh(game_win);
-
-	/* HUD */
-    box(hud_win, 0, 0);
-    mvwprintw(hud_win, 2, COLS / 2 - 9, "Bomberman! \\(^_^)/        %d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
 	wrefresh(hud_win);
+	
 }
 void del_stuff()
 {

@@ -51,14 +51,18 @@ int main()
 	WINDOW *menu_win;
 	int highlight = 1;
 	int choice = 0;
-	int c;
+	int c,c2;
 	int i,j,k,l,tint;
 	int menu_start;
 	char *splash = "SPLASH", *screen = "SCREEN!", dumpch, tempstr[50],t1,t2;
 	int act_menu, ret_menu;
 	int ptr;
 	int len;
-	
+	int plr;
+	int bts;
+	int wns;
+	int rep;
+	WINDOW *num_win;
 	srand(time(0));
 		
 	//configs
@@ -150,6 +154,10 @@ int main()
 
 
 	menu_win = newwin(HEIGHT, WIDTH, (int)((float)(LINES-HEIGHT)/2),(int)((float)(COLS-WIDTH)/2));
+	num_win = newwin(7,30,(LINES-7)/2,(COLS-30)/2);
+
+	keypad(num_win,TRUE);
+	nodelay(num_win, TRUE);
 	keypad(menu_win, TRUE);
     nodelay(menu_win, TRUE);
 	menu_start = clock();
@@ -203,17 +211,120 @@ int main()
 						menu_start = clock();
 						break;
 					case 21:
-						clear();
-						refresh();
-						battle(2, 6, 2);
+						
+						box(num_win,0,0);
+						wrefresh(num_win);
+						rep=1;
+						plr=2;
+						bts=6;
+						wns=2;
+
+						while (rep==1){
+							wclear(num_win);
+							
+
+							wattron(num_win,COLOR_PAIR(24));
+							for (i=0;i<200;i++) wprintw(num_win," ");
+							mvwprintw(num_win,2,2,"Izaberite broj igraca:");
+							mvwprintw(num_win, 3,2,"%c %d %c", 0xAE, plr, 0xAF);
+							wattroff(num_win,COLOR_PAIR(24));
+
+							wattron(num_win,COLOR_PAIR(129));
+							box(num_win,0,0);
+							wattroff(num_win,COLOR_PAIR(129));
+
+							refresh();
+							wrefresh(num_win);
+							c2 = wgetch(num_win);
+							switch(c2){
+								case 32: case 10:
+									rep=0;
+									break;
+								case KEY_RIGHT:
+									if (plr==1) plr++;
+									break;
+								case KEY_LEFT:
+									if (plr==2) plr--;
+									break;
+								case 27:
+									rep=-1;
+									break;
+								}
+						Sleep(50);
+						}
+						if (rep==-1) break; 
+						else rep=1;
+
+						while (rep==1){
+							wclear(num_win);
+							wattron(num_win,COLOR_PAIR(24));
+							for (i=0;i<200;i++) wprintw(num_win," ");
+							mvwprintw(num_win,2,2,"Izaberite broj botova:");
+							mvwprintw(num_win, 3,2,"%c %d %c", 0xAE, bts, 0xAF);
+							wattroff(num_win,COLOR_PAIR(24));
+
+							wattron(num_win,COLOR_PAIR(129));
+							box(num_win,0,0);
+							wattroff(num_win,COLOR_PAIR(129));
+
+							refresh();
+							wrefresh(num_win);
+							c2 = wgetch(num_win);
+							switch(c2){
+								case 32: case 10:
+									rep=0;
+									break;
+								case KEY_RIGHT:
+									if (bts<8-plr) bts++;
+									break;
+								case KEY_LEFT:
+									if (bts>2-plr) bts--;
+									break;
+								case 27:
+									rep=-1;
+									break;
+								}
+						Sleep(50);
+						}
+						if (rep==-1) break; 
+						else rep=1;
+
+						while (rep==1){
+							wclear(num_win);
+
+							wattron(num_win,COLOR_PAIR(24));
+							for (i=0;i<200;i++) wprintw(num_win," ");
+							mvwprintw(num_win,2,2,"Izaberite broj pobeda:");
+							mvwprintw(num_win, 3,2,"%c %d %c", 0xAE, wns, 0xAF);
+							wattroff(num_win,COLOR_PAIR(24));
+
+							wattron(num_win,COLOR_PAIR(129));
+							box(num_win,0,0);
+							wattroff(num_win,COLOR_PAIR(129));
+
+							refresh();
+							wrefresh(num_win);
+							c2 = wgetch(num_win);
+							switch(c2){
+								case 32: case 10:
+									rep=0;
+									break;
+								case KEY_RIGHT:
+									if (wns<5) wns++;
+									break;
+								case KEY_LEFT:
+									if (wns>1) wns--;
+									break;
+								case 27:
+									rep=-1;
+									break;
+								}
+						Sleep(50);
+						}
+						if (rep==-1) break;
+
+						battle(plr, bts, wns);
 						resize_term(60,150);
-						menu_start = clock();
-						break;
-					case 22:
-						clear();
-						refresh();
-						battle(1, 7, 2);
-						resize_term(60, 150);
 						menu_start = clock();
 						break;
 					case 13:
@@ -267,7 +378,7 @@ void print_menu(WINDOW *menu_win, int ptr, struct m_list m_choices){
 
 	attron(COLOR_PAIR(51));
 	for (i=0;i<COLS * LINES;i++) printw(" ");
-	attroff(COLOR_PAIR(50));
+	attroff(COLOR_PAIR(51));
 
 	wattron(menu_win,COLOR_PAIR(24));
 	for (i=0;i<900;i++) wprintw(menu_win," ");

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 typedef struct {
-	int id, x, y, health, bombs, bomb_range, action, immortal_end, last_move;
+	int id, type, x, y, health, bombs, bomb_range, action, last_action, immortal_end, last_move, speed;
 	bool immortal;
 	unsigned char powers;
 } Player;
@@ -290,5 +290,54 @@ void bot_action(Player *current_bot)
 		case 4:
 			if (can_pass(bot, screen[y - 1][x]) && safe(y - 1, x)) bot->action = 4;
 		}
+	}
+}
+void mob_action(Player *current_mob)
+{
+	int y = current_mob->y, x = current_mob->x;
+	bool dirc = rand() % 100 < 20 ? TRUE : FALSE;
+	bot = current_mob;
+	switch (current_mob->last_action)
+	{
+	case 1:
+		if (can_pass(bot, screen[y][x + 1]))
+			bot->action = 1;
+		else if (dirc && can_pass(bot, screen[y - 1][x]))
+			bot->action = 4;
+		else if (dirc && can_pass(bot, screen[y + 1][x]))
+			bot->action = 2;
+		else 
+			bot->action = 3;
+		break;
+	case 2:
+		if (can_pass(bot, screen[y + 1][x]))
+			bot->action = 2;
+		else if (dirc && can_pass(bot, screen[y][x - 1]))
+			bot->action = 3;
+		else if (dirc && can_pass(bot, screen[y][x + 1]))
+			bot->action = 1;
+		else 
+			bot->action = 4;
+		break;
+	case 3:
+		if (can_pass(bot, screen[y][x - 1]))
+			bot->action = 3;
+		else if (dirc && can_pass(bot, screen[y - 1][x]))
+			bot->action = 4;
+		else if (dirc && can_pass(bot, screen[y + 1][x]))
+			bot->action = 2;
+		else 
+			bot->action = 1;
+		break;
+	case 4:
+		if (can_pass(bot, screen[y - 1][x]))
+			bot->action = 4;
+		else if (dirc && can_pass(bot, screen[y][x - 1]))
+			bot->action = 3;
+		else if (dirc && can_pass(bot, screen[y][x + 1]))
+			bot->action = 1;
+		else 
+			bot->action = 2;
+		break;
 	}
 }

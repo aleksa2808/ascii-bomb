@@ -25,7 +25,7 @@ typedef struct{
 
 
 typedef struct {
-	int id, x, y, health, bombs, bomb_range, action, immortal_end, last_move;
+	int id, type, x, y, health, bombs, bomb_range, action, last_action, immortal_end, last_move, speed;
 	bool immortal;
 	unsigned char powers;
 } Player;

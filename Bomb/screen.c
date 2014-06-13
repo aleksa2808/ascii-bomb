@@ -1,11 +1,14 @@
 #include <curses.h>
 #include <time.h>
 #include <stdlib.h>
-int m, n, k, background=2;
 WINDOW *game_win, *hud_win;
-#define MAP_SPRITE_NUM 16
+#define MAP_SPRITE_NUM 20
 #define BOMB_TIME 2
 
+int fusecol=12;
+int background=2;
+int hudcol=0;
+int m,n;
 typedef struct{
 	unsigned char ch[4][6];
 	short col1[4][6],col2[4][6];
@@ -37,14 +40,15 @@ void init_screen(int mm, int nn)
 {	FILE *dat;
 	char t1,t2;
 	int i, j, l;
+	int k;
 
+	int arena_id=2;
 	clear();
 
 
 
     m = mm;
     n = nn;
-	k=0;
     resize_term(12 + m * 4,n * 6);
  
     
@@ -75,8 +79,16 @@ void init_screen(int mm, int nn)
 
 	/*Reading the sprites*/
 
+	switch (arena_id){
+		case 1:
+			dat = fopen("data/mapsprites.txt","r");
+			break;
+		case 2:
+			dat = fopen("data/mapsprites2.txt","r");
+			break;
+	}
 
-	dat = fopen("data/mapsprites.txt","r");
+	i = fscanf(dat, "%d %d %d\n", &background, &fusecol, &hudcol);
 	for (k=0;k<MAP_SPRITE_NUM;k++){
 		for (i=0;i<4;i++)
 			for (j=0;j<6;j++)
@@ -186,7 +198,8 @@ void draw_bomb(int posx, int posy, Sprite spr, int k){
 			else{
 				if (spr.col1[i][j] == 16) c1=background; else c1=spr.col1[i][j];	
 				if (spr.col2[i][j] == 16) c2=background; else c2=spr.col2[i][j];	
-
+				if (c1 == 14 && c1!=fusecol) c1 = fusecol;
+				if (c2 == 14 && c2!=fusecol) c2 = fusecol;
 				if (spr.ch[i][j] == 1) c= ch; else	c=spr.ch[i][j];
 				wattron(game_win,COLOR_PAIR(c2*16+c1));
 				mvwprintw(game_win,posx*4+i,posy*6+j,"%c",c);
@@ -249,16 +262,16 @@ void draw_hudp(Sprite spr, int ID){
 	static int playercolor[10]= {15, 14, 13, 12, 11, 10, 9, 2};
 
 	for (i=12*(ID)-7;i < 12*(ID) +1 ;i++){
-		wattron(hud_win,COLOR_PAIR(130));
+		wattron(hud_win,COLOR_PAIR(128+hudcol));
 		mvwprintw(hud_win, 3, i, "%c", 0xDC);
 		mvwprintw(hud_win,8,i,"%c", 0xDF);
-		wattroff(hud_win, COLOR_PAIR(130));
+		wattroff(hud_win, COLOR_PAIR(128+hudcol));
 	}
 	for (i=4;i<8;i++){
-		wattron(hud_win,COLOR_PAIR(130));
+		wattron(hud_win,COLOR_PAIR(128+hudcol));
 		mvwprintw(hud_win, i,12*(ID)-7, "%c",0xDB);
 		mvwprintw(hud_win,i,12*(ID),"%c",0xDB);
-		wattroff(hud_win, COLOR_PAIR(130));
+		wattroff(hud_win, COLOR_PAIR(128+hudcol));
 	}
 		for (i=0;i<4;i++)
 			for (j=0;j<6;j++) {
@@ -283,6 +296,7 @@ void draw_hudp(Sprite spr, int ID){
 
 void draw(char **screen, struct BombList *b, struct PlayerList *p)
 {	
+	static int k;
     int i, j, pnum, clk;
 	double temptime;
     wclear(game_win);
@@ -304,18 +318,20 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	// HUD initialization
 	wclear(hud_win);
 
-	wattron(hud_win,COLOR_PAIR(50));
+	wattron(hud_win,COLOR_PAIR(hudcol));
     for (i=0; i<COLS*12; i++) wprintw(hud_win, " ");
+	box(hud_win, 0,0);
+	wattroff(hud_win, COLOR_PAIR(hudcol));
+	wattron (hud_win,COLOR_PAIR(hudcol));
 	mvwprintw(hud_win, 2, COLS / 2 - 2, "%d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
+	wattroff (hud_win, COLOR_PAIR(hudcol));
 	
-	wattroff(hud_win, COLOR_PAIR(50));
 	i=0;
 	while (p){
 		if (p->player->immortal == TRUE && k % 20 > 10)
-			draw_player(p->player->y,p->player->x,sprPlayer[0],sprMap[screen[p->player->y][p->player->x]<=10?screen[p->player->y][p->player->x]:0],p->player->id-1,1, p->player->action);
+			draw_player(p->player->y,	p->player->x,	sprPlayer[0],	sprMap[screen[p->player->y][p->player->x]],p->player->id-1,1, p->player->action);
 		else
-			draw_player(p->player->y,p->player->x,sprPlayer[0],sprMap[screen[p->player->y][p->player->x]<=10?screen[p->player->y][p->player->x]:0],p->player->id-1,0, p->player->action);
-		
+			draw_player(p->player->y,	p->player->x,	sprPlayer[0],	sprMap[screen[p->player->y][p->player->x]],p->player->id-1,0, p->player->action);
 		// HUD player drawing
 		draw_hudp(sprPlayer[0],p->player->id);
 		p = p->next;
@@ -332,4 +348,80 @@ void del_stuff()
 {
 	delwin(game_win);
 	delwin(hud_win);
+}
+
+void scoreboard(int *scores, int num){
+	int i,j,k;
+	short col1, col2;
+	static int playercolor[10]= {15, 14, 13, 12, 11, 10, 9, 2};
+	
+	
+	clear();
+	refresh();
+
+	for (i=0; i<COLS;i++){
+		attron(COLOR_PAIR(j=rand()%256));
+		mvprintw(0,i,"%c",0xDF);
+		attroff(COLOR_PAIR(j));
+
+		attron(COLOR_PAIR(j=rand()%256));
+		mvprintw(LINES-1,i,"%c",0xDF);
+		attroff(COLOR_PAIR(j));
+	}
+	
+	for (i=1; i<LINES-1; i++){
+		attron(COLOR_PAIR(j=rand()%256));
+		mvprintw(i, 0, "%c", 0xDF);
+		attroff(COLOR_PAIR(j));
+
+		attron(COLOR_PAIR(j=rand()%256));
+		mvprintw(i, 1, "%c", 0xDF);
+		attroff(COLOR_PAIR(j));
+
+		attron(COLOR_PAIR(j=rand()%256));
+		mvprintw(i, COLS-1, "%c", 0xDF);
+		attroff(COLOR_PAIR(j));
+
+		attron(COLOR_PAIR(j=rand()%256));
+		mvprintw(i, COLS-2, "%c", 0xDF);
+		attroff(COLOR_PAIR(j));
+	}
+
+
+	for (i=0; i<num; i++){
+		for (j=0; j<4; j++)
+			for (k=0; k<6; k++){
+
+
+				if (sprPlayer[0].col1[j][k]==16) col1=2;
+				else 
+					if (sprPlayer[0].col1[j][k]==17) col1= playercolor[i];
+					else col1 = sprPlayer[0].col1[j][k];
+
+				if (sprPlayer[0].col2[j][k]==16) col2=2;
+				else
+					if (sprPlayer[0].col2[j][k]==17) col2= playercolor[i];
+					else col2 = sprPlayer[0].col2[j][k];
+
+				attron (COLOR_PAIR(col1*16+col2));
+				mvprintw (i*6+3+j, k+4, "%c",sprPlayer[0].ch[j][k]);
+				attroff (COLOR_PAIR(col1*16+col2));
+			}
+		for (j=0; j<scores[i]; j++){
+			attron (COLOR_PAIR(224));
+			mvprintw(i*6+3, 15+j*9, "%c%c %c%c", 0xDC, 0xDC, 0xDC, 0xDC);
+			mvprintw(i*6+4, 15+j*9, " %c%c%c ",0xDB, 0xDB,0xDB);
+			mvprintw(i*6+5, 15+j*9, " %c%c%c ",0xDF, 0xDB,0xDF);
+			mvprintw(i*6+6, 15+j*9, " %c%c%c ",0xDC,0xDB,0xDC);
+			attroff (COLOR_PAIR(224));
+		}
+
+		
+	}
+	refresh();
+	k=0;
+	while (k!=32){
+		k = getch();
+	}
+
 }

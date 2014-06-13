@@ -36,13 +36,12 @@ Sprite sprMap[MAP_SPRITE_NUM],sprBomb[3];
 
 extern int time_end, iter_time;
 
-void init_screen(int mm, int nn)
+void init_screen(int mm, int nn, int arena_id)
 {	FILE *dat;
 	char t1,t2;
 	int i, j, l;
 	int k;
 
-	int arena_id=2;
 	clear();
 
 

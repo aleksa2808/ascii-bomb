@@ -72,6 +72,7 @@ extern int sdon;
 
 extern void init_screen(int, int, int);
 extern void draw(char**, struct BombList*, struct PlayerList*, struct MobList*);
+extern void scoreboard(int *scores, int num);
 extern void del_stuff(void);
 
 extern void bot_action(Player*);
@@ -1000,7 +1001,7 @@ int campaign(void)
 	bombs = 1, range = 1, powers = 0, health = 1;
 	points = 0;
 
-	init_screen(m, n, (level - 1) / 5);
+	init_screen(m, n, (level - 1) / 5 + 1);
 	create_map(level);
 	init_players(1, 0);
 	//
@@ -1149,7 +1150,7 @@ int campaign(void)
 int battle(int num_players, int num_bots, int req_wins)
 {
     /* ~Initialization~ */
-    int ch, winner, arena = rand() % 2;
+    int ch, winner, arena = rand() % 2 + 1;
 	bool running;
 	
 	struct WallOfDeath *w = NULL;
@@ -1228,7 +1229,7 @@ int battle(int num_players, int num_bots, int req_wins)
 		else if (winner > 0) 
 		{
 			scores[winner - 1]++;
-			//scoreboard();
+			scoreboard(scores, num_players+num_bots);
 			if (scores[winner - 1] == req_wins)
 			{
 				// CHAMPION!

@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #define WIDTH 30
 #define HEIGHT 20 
-#define MAP_SPRITE_NUM 16
+#define MAP_SPRITE_NUM 20
 
 int sdon;
 int demoon;

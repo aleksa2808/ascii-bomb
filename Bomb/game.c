@@ -67,6 +67,7 @@ extern WINDOW *game_win;
 
 extern int sdon;
 
+extern void scoreboard(int *scores, int num);
 extern void init_screen(int, int);
 extern void draw(char**, struct BombList*, struct PlayerList*, struct MobList*);
 extern void del_stuff(void);
@@ -352,8 +353,8 @@ void gen_power(int y, int x)
 	else if (mode == 2)
 	{
 		if (r < 45) screen[y][x] = BOMBS_UP;
-		if (r >= 45 && r < 80) screen[y][x] = RANGE_UP;
-		if (r >= 80 && r < 90) screen[y][x] = BOMB_PUSH;
+		if (r >= 45 && r < 90) screen[y][x] = RANGE_UP;
+		if (r >= 90) screen[y][x] = BOMB_PUSH;
 	}
 }
 struct BombList* get_bomb(int y, int x)
@@ -1129,7 +1130,7 @@ int battle(int num_players, int num_bots, int req_wins)
 		else if (winner > 0) 
 		{
 			scores[winner - 1]++;
-			//scoreboard();
+			scoreboard(scores, num_players+num_bots);
 			if (scores[winner - 1] == req_wins)
 			{
 				// CHAMPION!

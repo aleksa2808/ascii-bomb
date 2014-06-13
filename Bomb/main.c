@@ -62,6 +62,7 @@ int main()
 	int bts;
 	int wns;
 	int rep;
+	int tmp;
 	WINDOW *num_win;
 	srand(time(0));
 		
@@ -107,24 +108,26 @@ int main()
 	//player sprite loading
 	dat = fopen("data/playersprites.txt","r");
 	fscanf(dat,"%d\n",&tint);
+	for (tmp=0; tmp<tint; tmp++){
 	for (i=0;i<4;i++)
 		for (j=0;j<6;j++)
-			sprPlayer[0].ch[i][j]=0xDF;
-	for (i=0;i<4;i++){
-		for (j=0;j<6;j++){
-			fscanf(dat,"%c",&t1);
-			if (t1=='x'){
-				fscanf(dat,"%d%c%c",&l,&t1,&t2);
-				sprPlayer[0].ch[i][j]=l;
+			sprPlayer[tmp].ch[i][j]=0xDF;
+	
+		for (i=0;i<4;i++){
+			for (j=0;j<6;j++){
+				fscanf(dat,"%c",&t1);
+				if (t1=='x'){
+					fscanf(dat,"%d%c%c",&l,&t1,&t2);
+					sprPlayer[tmp].ch[i][j]=l;
+				}
+				else fscanf(dat,"%c",&t2);
+				if (t1==t2) sprPlayer[tmp].ch[i][j]=' ';
+				sprPlayer[tmp].col1[i][j]=t1-'a';
+				sprPlayer[tmp].col2[i][j]=t2-'a';
 			}
-			else fscanf(dat,"%c",&t2);
-			if (t1==t2) sprPlayer[0].ch[i][j]=' ';
-			sprPlayer[0].col1[i][j]=t1-'a';
-			sprPlayer[0].col2[i][j]=t2-'a';
+			fscanf(dat,"%c",&t1);
 		}
-		fscanf(dat,"%c",&t1);
 	}
-	sprPlayer[1]=sprPlayer[2]=sprPlayer[3]=sprPlayer[0];
 	fclose(dat);
 
 

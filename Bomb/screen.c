@@ -208,7 +208,8 @@ void draw_bomb(int posx, int posy, Sprite spr, int k){
 
 }
 void draw_player(int posx, int posy, Sprite spr, Sprite bckgr, int ID, int immo, int trnp){
-	int i,j,col1,col2;
+	int i,j,col1,col2, t;
+	char ch;
 	static int turn[10] = {0};
 	static int playercolor[10]= {15, 14, 13, 12, 11, 10, 9, 2};
 
@@ -246,7 +247,9 @@ void draw_player(int posx, int posy, Sprite spr, Sprite bckgr, int ID, int immo,
 					if (spr.col2[ i ][ turn[ID]==0?j:5-j ]==16)
 						col2 = bckgr.col2[i][j]==16?background:bckgr.col2[i][j];
 					else col2 = 15;
-				
+					
+					if (spr.ch[ i ][ turn[ID]==0?j:5-j ] == 0xDF) {t=col1; col1=col2; col2=t;}
+
 					wattron(game_win,COLOR_PAIR(col2*16+col1));
 					mvwprintw(game_win, posx*4+i, posy*6+j,"%c",spr.ch[ i ][ turn[ID]==0?j:5-j ]);
 					wattroff(game_win,COLOR_PAIR(col2*16+col1));
@@ -328,11 +331,11 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	i=0;
 	while (p){
 		if (p->player->immortal == TRUE && k % 20 > 10)
-			draw_player(p->player->y,	p->player->x,	sprPlayer[0],	sprMap[screen[p->player->y][p->player->x]],p->player->id-1,1, p->player->action);
+			draw_player(p->player->y,	p->player->x,	sprPlayer[p->player->type],	sprMap[screen[p->player->y][p->player->x]],p->player->id-1,1, p->player->action);
 		else
-			draw_player(p->player->y,	p->player->x,	sprPlayer[0],	sprMap[screen[p->player->y][p->player->x]],p->player->id-1,0, p->player->action);
+			draw_player(p->player->y,	p->player->x,	sprPlayer[p->player->type],	sprMap[screen[p->player->y][p->player->x]],p->player->id-1,0, p->player->action);
 		// HUD player drawing
-		draw_hudp(sprPlayer[0],p->player->id);
+		if (p->player->type == 0) draw_hudp(sprPlayer[0],p->player->id);
 		p = p->next;
 	}
 	

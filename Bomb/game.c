@@ -129,24 +129,26 @@ void create_map(int level)
 				screen[my][mx] = WALL;
 		}
 	}
+}
+void spawn_exit(int level)
+{
+	int my, mx;
 
-	/* Generate an exit in story mode */
-	if (mode == 1)
-		if (level % 5 != 0)
+	if (level % 5 != 0)
+	{
+		do
 		{
-			do
-			{
-					my = rand()%(m - 2) + 1;
-					mx = rand()%(n - 2) + 1;
-			}
-			while (!(screen[my][mx] == WALL && my > 3 && mx > 3));
-			exity = my, exitx = mx;
+				my = rand()%(m - 2) + 1;
+				mx = rand()%(n - 2) + 1;
 		}
-		else
-		{
-			exity = 0;
-			exitx = 0;
-		}
+		while (!(screen[my][mx] == WALL && my > 3 && mx > 3));
+		exity = my, exitx = mx;
+	}
+	else
+	{
+		exity = 0;
+		exitx = 0;
+	}
 }
 struct WallOfDeath* init_wod(struct WallOfDeath *w)
 {
@@ -219,7 +221,7 @@ void init_players(int num_players, int num_bots)
 }
 void init_mobs(int level)
 {
-	int i, j, dir, mob_num = (level + 2) % 7 + level / 5;
+	int i, j, dir, mob_num = (level + 2) % 7 + level / 5 + 3;
 	Player *player;
 	int x[8] = {n - 4, n - 2, 11, 5, 1, n - 8}, y[8] = {m - 8, 1, m - 2, m - 6, 9, 3};
 	int bias = rand() % 20;
@@ -229,7 +231,7 @@ void init_mobs(int level)
 		player = (Player*) malloc(sizeof(Player));
 		player_queue(player);
 		player->id = i + 2;
-		player->type = 1;
+		player->type = i > 4 ? 2 : 1;
 		player->y = y[(i + bias) % 6];
 		player->x = x[(i + bias) % 6];
 		if (dir = rand() % 2)
@@ -262,7 +264,7 @@ void init_mobs(int level)
 				j++;
 			}
 		}
-		player->health = 1;
+		player->health = player->type;
 		player->bombs = 0;
 		player->bomb_range = 0;
 		player->immortal = FALSE;
@@ -373,8 +375,8 @@ void gen_power(int y, int x)
 	/* "Loot tables" */
 	if (mode == 1)
 	{
-		if (r < 45) screen[y][x] = BOMBS_UP;
-		if (r >= 45 && r < 80) screen[y][x] = RANGE_UP;
+		if (r < 50) screen[y][x] = BOMBS_UP;
+		if (r >= 50 && r < 80) screen[y][x] = RANGE_UP;
 		if (r >= 80 && r < 90) screen[y][x] = BOMB_PUSH;
 		if (r >= 90 && r < 94) screen[y][x] = HEALTH_UP;
 		if (r >= 94 && r < 98) screen[y][x] = WALL_HACK;
@@ -382,8 +384,8 @@ void gen_power(int y, int x)
 	}
 	else if (mode == 2)
 	{
-		if (r < 45) screen[y][x] = BOMBS_UP;
-		if (r >= 45 && r < 90) screen[y][x] = RANGE_UP;
+		if (r < 50) screen[y][x] = BOMBS_UP;
+		if (r >= 50 && r < 90) screen[y][x] = RANGE_UP;
 		if (r >= 90) screen[y][x] = BOMB_PUSH;
 	}
 }
@@ -721,7 +723,7 @@ void player_action(int ch, int num_players, int num_bots)
 			if (p->player->action && p->player->action != 5) p->player->last_move = iter_time;
 		}
 
-		if (p->player->type == 1 && can_move(p->player))
+		if (p->player->type > 0 && can_move(p->player))
 		{
 			mob_action(p->player);
 			if (p->player->action) 
@@ -1001,7 +1003,7 @@ int campaign(void)
 	bombs = 1, range = 1, powers = 0, health = 1;
 	points = 0;
 
-	init_screen(m, n, (level - 1) / 5 + 1);
+	init_screen(m, n, 1);
 	create_map(level);
 	init_players(1, 0);
 	//
@@ -1011,6 +1013,7 @@ int campaign(void)
 	plist_front->player->powers = powers;
 	//
 	init_mobs(level);
+	spawn_exit(level);
 	draw(screen, blist_front, plist_front, mlist_front);
 	
 	time_end = clock() + STORY_TIME * CLOCKS_PER_SEC;
@@ -1080,7 +1083,10 @@ int campaign(void)
 			else
 			{
 				blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, mlist_front = NULL, mlist_rear = NULL, flist_front = NULL, flist_rear = NULL;
-
+				
+				if (level == 6) init_screen(m, n, 2);
+				//if (level == 11) init_screen(m, n, 3);
+				//if (level == 16) init_screen(m, n, 4);
 				create_map(level);
 			
 				// Boss?
@@ -1105,6 +1111,7 @@ int campaign(void)
 				plist_front->player->powers = powers;
 
 				init_mobs(level);
+				spawn_exit(level);
 				draw(screen, blist_front, plist_front, mlist_front);
 	
 				time_end = clock() + STORY_TIME * CLOCKS_PER_SEC;

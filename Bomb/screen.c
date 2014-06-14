@@ -48,7 +48,7 @@ void init_screen(int mm, int nn, int arena_id)
 
     m = mm;
     n = nn;
-    resize_term(12 + m * 4,n * 6);
+    resize_term(10 + m * 4,n * 6);
  
     
 
@@ -68,11 +68,11 @@ void init_screen(int mm, int nn, int arena_id)
     */
 
 
-    game_win = newwin(m * 4, n * 6, 12, 0);
+    game_win = newwin(m * 4, n * 6, 10, 0);
     keypad(game_win, TRUE);
     nodelay(game_win, TRUE);
         
-    hud_win = newwin(12, COLS, 0, 0);
+    hud_win = newwin(10, COLS, 0, 0);
     box(hud_win, 0, 0);
 	wrefresh(hud_win);
 

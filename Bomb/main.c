@@ -140,7 +140,7 @@ int main()
 	for (i=0;i<16;i++)
 		for (j=0;j<16;j++)
 			init_pair(16*i+j,i,j);
-	resize_term (60,150);
+	resize_term(50,100);
 	/* Splash screen */
 	for (i = 0; i < COLS / 2 - 4; i++){
 		clear();
@@ -156,8 +156,8 @@ int main()
 	refresh();
 
 
-	menu_win = newwin(HEIGHT, WIDTH, (int)((float)(LINES-HEIGHT)/2),(int)((float)(COLS-WIDTH)/2));
-	num_win = newwin(7,30,(LINES-7)/2,(COLS-30)/2);
+	menu_win = newwin(HEIGHT, WIDTH, (int)((float)(LINES-HEIGHT)/2) + 3,(int)((float)(COLS-WIDTH)/2));
+	num_win = newwin(7,26,(LINES-7)/2 + 4,(COLS-30)/2 + 2);
 
 	keypad(num_win,TRUE);
 	nodelay(num_win, TRUE);
@@ -173,7 +173,7 @@ int main()
 			clear();
 			refresh();
 			battle(0, 8, 1);
-			resize_term(60,150);
+			resize_term(50,100);
 			menu_start = clock();
 		}
 		print_menu(menu_win, ptr, choices[act_menu]); 
@@ -210,7 +210,7 @@ int main()
 						clear();
 						refresh();
 						campaign();
-						resize_term(60,150);
+						resize_term(50,100);
 						menu_start = clock();
 						break;
 					case 21:
@@ -218,9 +218,9 @@ int main()
 						box(num_win,0,0);
 						wrefresh(num_win);
 						rep=1;
-						plr=2;
-						bts=6;
-						wns=2;
+						plr=1;
+						bts=3;
+						wns=3;
 
 						while (rep==1){
 							wclear(num_win);
@@ -327,7 +327,7 @@ int main()
 						if (rep==-1) break;
 
 						battle(plr, bts, wns);
-						resize_term(60,150);
+						resize_term(50,100);
 						menu_start = clock();
 						break;
 					case 13:
@@ -376,12 +376,19 @@ int main()
 }
 
 void print_menu(WINDOW *menu_win, int ptr, struct m_list m_choices){
-	int x,y,i;
+	int x,y,i, xt = 16, yt = 5;
 	x=2; y=2;
 
-	attron(COLOR_PAIR(51));
-	for (i=0;i<COLS * LINES;i++) printw(" ");
-	attroff(COLOR_PAIR(51));
+	//attron(COLOR_PAIR(51));
+	//for (i=0;i<COLS * LINES;i++) printw(" ");
+	//attroff(COLOR_PAIR(51));
+
+	mvprintw(yt + 1, xt, "  ____   ____  __  __ ____  ______ _____  __  __          _   _ ");
+	mvprintw(yt + 2, xt, " |  _ \\ / __ \\|  \\/  |  _ \\|  ____|  __ \\|  \\/  |   /\\   | \\ | |");
+	mvprintw(yt + 3, xt, " | |_) | |  | | \\  / | |_) | |__  | |__) | \\  / |  /  \\  |  \\| |");
+	mvprintw(yt + 4, xt, " |  _ <| |  | | |\\/| |  _ <|  __| |  _  /| |\\/| | / /\\ \\ | . ` |");
+	mvprintw(yt + 5, xt, " | |_) | |__| | |  | | |_) | |____| | \\ \\| |  | |/ ____ \\| |\\  |");
+	mvprintw(yt + 6, xt, " |____/ \\____/|_|  |_|____/|______|_|  \\_\\_|  |_/_/    \\_\\_| \\_|");
 
 	wattron(menu_win,COLOR_PAIR(24));
 	for (i=0;i<900;i++) wprintw(menu_win," ");

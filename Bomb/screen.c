@@ -232,8 +232,6 @@ void draw_player(int posx, int posy, Sprite spr, Sprite bckgr, int ID, int immo,
 						col2 = playercolor[ID];
 						else col2 = spr.col2[ i ][ turn[ID]==0?j:5-j ];
 					
-					if (col1==15 && background==15) col1=7;
-					if (col2==15 && background==15) col2=7;
 					wattron(game_win,COLOR_PAIR(col1*16+col2));
 					mvwprintw(game_win, posx*4+i, posy*6+j,"%c",(col1==0&&col2==0)?' ':spr.ch[i][ turn[ID]==0?j:5-j ]);
 					wattroff(game_win,COLOR_PAIR(col1*16+col2));
@@ -244,10 +242,10 @@ void draw_player(int posx, int posy, Sprite spr, Sprite bckgr, int ID, int immo,
 				if (!(spr.col1[ i ][ turn[ID]==0?j:5-j ]==16 && spr.col2[ i ][ turn[ID]==0?j:5-j ]==16)) {
 					if (spr.col1[ i ][ turn[ID]==0?j:5-j ]==16)
 						col1 = bckgr.col1[i][j]==16?background:bckgr.col1[i][j];
-					else col1 = background == 15? 7: 15;
+					else col1 = 15;
 					if (spr.col2[ i ][ turn[ID]==0?j:5-j ]==16)
 						col2 = bckgr.col2[i][j]==16?background:bckgr.col2[i][j];
-					else col2 = background == 15? 7: 15;
+					else col2 = 15;
 					
 					if (spr.ch[ i ][ turn[ID]==0?j:5-j ] == 0xDF) {t=col1; col1=col2; col2=t;}
 

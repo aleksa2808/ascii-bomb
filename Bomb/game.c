@@ -221,7 +221,7 @@ void init_players(int num_players, int num_bots)
 }
 void init_mobs(int level)
 {
-	int i, j, dir, mob_num = (level + 2) % 7 + level / 5 + 3;
+	int i, j, dir, mob_num = level % 5 + 2;
 	Player *player;
 	int x[8] = {n - 4, n - 2, 11, 5, 1, n - 8}, y[8] = {m - 8, 1, m - 2, m - 6, 9, 3};
 	int bias = rand() % 20;
@@ -739,16 +739,29 @@ void player_action(int ch, int num_players, int num_bots)
 void player_update(void)
 {
 	struct BombList *b;
-	struct PlayerList *p, *pp;
+	struct PlayerList *p, *pp, *mb;
+	bool on_mob;
 
 	p = plist_front;
 	while (p != NULL)
 	{
 		if (p->player->action) 
 			do_action(p->player);
-			
+		
+		on_mob = FALSE;
+		if (mode == 1 && p->player->id == 1)
+		{
+			mb = plist_front;
+			while (mb)
+			{
+				if (mb->player->type > 0 && mb->player->y == p->player->y && mb->player->x == p->player->x)
+					on_mob = TRUE;
+				mb = mb->next;
+			}
+		}
+
 		if (p->player->immortal && p->player->immortal_end <= iter_time) p->player->immortal = FALSE;
-		if ((screen[p->player->y][p->player->x] == FIRE && p->player->immortal == FALSE) || screen[p->player->y][p->player->x] == STONE_WALL)
+		if (((screen[p->player->y][p->player->x] == FIRE || on_mob) && p->player->immortal == FALSE) || screen[p->player->y][p->player->x] == STONE_WALL)
 		{
 			p->player->health--;
 			p->player->immortal = TRUE;
@@ -783,6 +796,7 @@ void player_update(void)
 				continue;
 			}
 		}
+
 		p = p->next;
 	}
 }

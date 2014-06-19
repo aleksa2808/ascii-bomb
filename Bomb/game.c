@@ -20,24 +20,40 @@
 #define IMMORTAL 15
 #define BOMB_PUSH 16
 
-#define STORY_TIME 300
+#define STORY_TIME 180
 #define GAME_TIME 120
-#define WOD_TIME 60
+#define GEN_TIME 60
 #define BOMB_TIME 2
 #define FIRE_TIME 0.5
 #define IMMORTAL_TIME 4
 
 #define POWER_CHANCE 10
 
+// GenAlg stuff
+#define RANDOM_NUM		((float)rand()/(RAND_MAX+1)) // {0..1}
+
+#define CROSSOVER_RATE            0.7
+#define MUTATION_RATE             0.01
+#define POP_SIZE                  8
+#define CHROMO_LENGTH             60
+#define GENE_LENGTH               3
+
+
 typedef struct {
 	int id, type, x, y, health, bombs, bomb_range, action, last_action, immortal_end, last_move, speed;
 	bool immortal;
 	unsigned char powers;
+	char gene[CHROMO_LENGTH + 1], code[(CHROMO_LENGTH / GENE_LENGTH) + 1];
 } Player;
 typedef struct { 
 	Player *owner;
 	int x, y, range, end_time, xdir, ydir, last_move;
 } Bomb;
+typedef struct
+{
+	int wod_start, y, x, dir, inc, last_move;
+	bool alive;
+} WallOfDeath;
 typedef struct BombList {
 	Bomb *bomb;
 	struct BombList *prev, *next;
@@ -50,10 +66,11 @@ typedef struct FireList {
 	int x, y, end_time;
 	struct FireList *prev, *next;
 };
-typedef struct WallOfDeath
-{
-	int wod_start, wody, wodx, woddir, wodinc, wod_last;
-	bool wodstop;
+
+typedef struct ScoreList {
+	char *name;
+	int points;
+	struct ScoreList *next;
 };
 
 char **screen;
@@ -62,9 +79,10 @@ struct PlayerList *plist_front, *plist_rear;
 struct MobList *mlist_front, *mlist_rear;
 struct FireList *flist_front, *flist_rear;
 int time_end, iter_time, m, n, per, mode;
+WallOfDeath *w;
 
 // for lack of a better global // story mode stuff
-int points, health, bombs, range, powers, exitx, exity;
+int lives, points, health, bombs, range, powers, exitx, exity, exit_spawn = 0;
 
 extern WINDOW *game_win;
 
@@ -73,6 +91,7 @@ extern int sdon;
 extern void init_screen(int, int, int);
 extern void draw(char**, struct BombList*, struct PlayerList*, struct MobList*);
 extern void scoreboard(int *scores, int num);
+extern void update_hud(int, char[(CHROMO_LENGTH / GENE_LENGTH) + 1], int);
 extern void del_stuff(void);
 
 extern void bot_action(Player*);
@@ -150,15 +169,15 @@ void spawn_exit(int level)
 		exitx = 0;
 	}
 }
-struct WallOfDeath* init_wod(struct WallOfDeath *w)
+WallOfDeath* init_wod(WallOfDeath *w)
 {
-	w = (struct WallOfDeath*) malloc(sizeof(struct WallOfDeath));
-	w->wody = m - 1;
-	w->wodx = 1;
-	w->woddir = 4;
-	w->wodinc = 0;
-	w->wod_last = clock();
-	w->wodstop = FALSE;
+	w = (WallOfDeath*) malloc(sizeof(WallOfDeath));
+	w->y = m - 1;
+	w->x = 1;
+	w->dir = 4;
+	w->inc = 0;
+	w->last_move = clock();
+	w->alive = FALSE;
 	return w;
 }
 void spawn(int id, Player *player, int y, int x)
@@ -182,6 +201,9 @@ void spawn(int id, Player *player, int y, int x)
 	player->action = 0;
 	player->last_action = 0;
 	player->speed = 300;
+	
+	strcpy(player->gene, "000000000000000000000000000000000000000000000000000000000000");
+	strcpy(player->code, "1234567");
 }
 void player_queue(Player *player)
 {
@@ -203,20 +225,62 @@ void player_queue(Player *player)
 }
 void init_players(int num_players, int num_bots)
 {
-	int i;
+	int i, xi, yi;
 	Player *player;
-	int x[8] = {1, n - 2, n - 2, 1, 5, n - 6, n - 6, 5}, y[8] = {1, m - 2, 1, m - 2, 3, m - 4, 3, m - 4};
+	int x[8] = {1, n - 2, n - 2, 1}, y[8] = {1, m - 2, 1, m - 2};
 	for (i = 0; i < num_players; i++)
 	{
 		player = (Player*) malloc(sizeof(Player));
 		player_queue(player);
-		spawn(i + 1, player, y[i], x[i]);	
+		
+		switch (i % 4)
+		{
+		case 0:
+			xi = x[i % 4] + (i / 4) * 4;
+			yi = y[i % 4] + (i / 4) * 2;
+			break;
+		case 1:
+			xi = x[i % 4] - (i / 4) * 4;
+			yi = y[i % 4] - (i / 4) * 2;
+			break;
+		case 2:
+			xi = x[i % 4] - (i / 4) * 4;
+			yi = y[i % 4] + (i / 4) * 2;
+			break;
+		case 3:
+			xi = x[i % 4] + (i / 4) * 4;
+			yi = y[i % 4] - (i / 4) * 2;
+			break;
+		}
+
+		spawn(i + 1, player, yi, xi);
 	}
 	for (i = 0; i < num_bots; i++)
 	{
 		player = (Player*) malloc(sizeof(Player));
 		player_queue(player);
-		spawn(num_players + i + 1, player, y[num_players + i], x[num_players + i]);
+
+		switch ((num_players + i) % 4)
+		{
+		case 0:
+			xi = x[(num_players + i) % 4] + ((num_players + i) / 4) * 4;
+			yi = y[(num_players + i) % 4] + ((num_players + i) / 4) * 2;
+			break;
+		case 1:
+			xi = x[(num_players + i) % 4] - ((num_players + i) / 4) * 4;
+			yi = y[(num_players + i) % 4] - ((num_players + i) / 4) * 2;
+			break;
+		case 2:
+			xi = x[(num_players + i) % 4] - ((num_players + i) / 4) * 4;
+			yi = y[(num_players + i) % 4] + ((num_players + i) / 4) * 2;
+			break;
+		case 3:
+			xi = x[(num_players + i) % 4] + ((num_players + i) / 4) * 4;
+			yi = y[(num_players + i) % 4] - ((num_players + i) / 4) * 2;
+			break;
+		}
+
+		spawn(num_players + i + 1, player, yi, xi);
 	}
 }
 void init_mobs(int level)
@@ -351,8 +415,8 @@ void power_time(Player *player)
 		if (mode == 1) range++;
 		break;
 	case HEALTH_UP:
-		player->health++;
-		if (mode == 1) health++;
+		//player->health++;
+		if (mode == 1) lives++;
 		break;
 	case WALL_HACK:
 		player->powers |= 0x10;
@@ -579,25 +643,30 @@ int xplosion_logic(int y, int x)
 		flist_rear = f;
 		return 1;
 	case EXIT:
-		player = (Player*) malloc(sizeof(Player));
-		player_queue(player);
-		player->id = -1;
-		player->type = 1;
-		player->y = y;
-		player->x = x;
-		player->health = 1;
-		player->bombs = 0;
-		player->bomb_range = 0;
-		player->immortal = TRUE;
-		player->immortal_end = iter_time + IMMORTAL_TIME * CLOCKS_PER_SEC;
-		player->powers = 0;
-		player->last_move = 0;
-		player->action = 0;
-		if (can_pass(player, screen[y][x + 1])) player->last_action = 1;
-		else if (can_pass(player, screen[y][x = 1])) player->last_action = 3;
-		else if (can_pass(player, screen[y + 1][x])) player->last_action = 2;
-		else player->last_action = 4;
-		player->speed = 500;
+		if (exit_spawn <= iter_time)
+		{
+			player = (Player*) malloc(sizeof(Player));
+			player_queue(player);
+			player->id = -1;
+			player->type = 1;
+			player->y = y;
+			player->x = x;
+			player->health = 1;
+			player->bombs = 0;
+			player->bomb_range = 0;
+			player->immortal = TRUE;
+			player->immortal_end = iter_time + IMMORTAL_TIME * CLOCKS_PER_SEC;
+			player->powers = 0;
+			player->last_move = 0;
+			player->action = 0;
+			if (can_pass(player, screen[y][x + 1])) player->last_action = 1;
+			else if (can_pass(player, screen[y][x = 1])) player->last_action = 3;
+			else if (can_pass(player, screen[y + 1][x])) player->last_action = 2;
+			else player->last_action = 4;
+			player->speed = 500;
+
+			exit_spawn = iter_time + 2 * CLOCKS_PER_SEC;
+		}
 		break;
 	case BOMBS_UP: /* Power-ups getting destroyed :'( */
 	case RANGE_UP:
@@ -646,7 +715,7 @@ void pinata(void)
 	for (i = 1; i < m - 1; i++)
 		for (j = 1; j < n - 1; j++)
 			if (screen[i][j] == EMPTY) empty_spots++;
-	empty_spots = empty_spots > 5 ? 5 : empty_spots; // needs fixin!
+	empty_spots = min(empty_spots, 3);
 	for (i = 0; i < empty_spots; i++)
 	{
 		do
@@ -777,8 +846,11 @@ void player_update(void)
 					b = b->next;
 				}
 
-				if (mode == 1 && p->player->id > 0)
-					points += p->player->type * 50;
+				if (mode == 1 && p->player->id > 1)
+				{
+					if (p->player->type == 0) points += 200;
+					else points += p->player->type * 20 + 30;
+				}
 
 				if (p->prev == NULL) plist_front = p->next;
 				else p->prev->next = p->next;
@@ -897,78 +969,225 @@ void fire_update(void)
 		f = flist_front;
 	}
 }
-void wod_update(struct WallOfDeath *w)
+void wod_update(WallOfDeath *w)
 {
 	struct BombList *b;
 	struct FireList *f;
 
-	while (!w->wodstop && w->wod_start <= iter_time && w->wod_last + 0.2 * CLOCKS_PER_SEC <= iter_time)
-	{
-		switch (w->woddir)
+	if (!w->alive && w->wod_start <= iter_time) w->alive = TRUE;
+	else while (w->alive && w->last_move + 0.2 * CLOCKS_PER_SEC <= iter_time)
 		{
-		case 1:
-			if (w->wodx < n - 2 - w->wodinc) w->wodx++;
-			else
+			switch (w->dir)
 			{
-				w->woddir = 2;
-				w->wody++;
-			}
-			break;
-		case 2:
-			if (w->wody < m - 2 - w->wodinc) w->wody++;
-			else
-			{
-				w->woddir = 3;
-				w->wodx--;
-				w->wodinc++;
-			}
-			break;
-		case 3:
-			if (w->wodx > 1 + w->wodinc) w->wodx--;
-			else
-			{
-				if (w->wodinc == 2) 
-					w->wodstop = TRUE;
+			case 1:
+				if (w->x < n - 2 - w->inc) w->x++;
 				else
 				{
-					w->woddir = 4;
-					w->wody--;
+					w->dir = 2;
+					w->y++;
 				}
+				break;
+			case 2:
+				if (w->y < m - 2 - w->inc) w->y++;
+				else
+				{
+					w->dir = 3;
+					w->x--;
+					w->inc++;
+				}
+				break;
+			case 3:
+				if (w->x > 1 + w->inc) w->x--;
+				else
+				{
+					if (w->inc == 2) 
+						w->alive = FALSE;
+					else
+					{
+						w->dir = 4;
+						w->y--;
+					}
+				}
+				break;
+			case 4:
+				if (w->y > 1 + w->inc) w->y--;
+				else
+				{
+					w->dir = 1;
+					w->x++;
+				}
+				break;
 			}
-			break;
-		case 4:
-			if (w->wody > 1 + w->wodinc) w->wody--;
-			else
+
+			if (screen[w->y][w->x] == 2) continue;
+
+			switch (screen[w->y][w->x])
 			{
-				w->woddir = 1;
-				w->wodx++;
+			case BOMB:
+				b = get_bomb(w->y, w->x);
+				recycle_bomb(b);
+				break;
+			case FIRE:
+			case WALL_ON_FIRE:
+			case POWER_ON_FIRE:
+				f = get_fire(w->y, w->x);
+				if (f->prev == NULL) flist_front = f->next;
+				else f->prev->next = f->next;
+				if (f->next == NULL) flist_rear = f->prev;
+				else f->next->prev = f->prev;
+				free(f);
 			}
+			screen[w->y][w->x] = STONE_WALL;
+
+			w->last_move = iter_time;
+
 			break;
 		}
+}
+void update_scores(void)
+{
+	WINDOW *input_win;
+	FILE *high_scores;
+	struct ScoreList *slist = NULL, *s = NULL, *t, *p = NULL;
+	int i, j, chksum, sum, k;
+	char ch, *pts;
 
-		if (screen[w->wody][w->wodx] == 2) continue;
-
-		switch (screen[w->wody][w->wodx])
+	// da li neko vara? :)
+	high_scores = fopen("data/highscores.txt", "r");
+	if (high_scores)
+	{
+		sum = 0;
+		for (i = 0; i < 10; i++)
 		{
-		case BOMB:
-			b = get_bomb(w->wody, w->wodx);
-			recycle_bomb(b);
-			break;
-		case FIRE:
-		case WALL_ON_FIRE:
-		case POWER_ON_FIRE:
-			f = get_fire(w->wody, w->wodx);
-			if (f->prev == NULL) flist_front = f->next;
-			else f->prev->next = f->next;
-			if (f->next == NULL) flist_rear = f->prev;
-			else f->next->prev = f->prev;
-			free(f);
+			while ((ch = fgetc(high_scores)) != '\n')
+			{
+				sum += ch;
+			}
 		}
-		screen[w->wody][w->wodx] = STONE_WALL;
+		fscanf(high_scores, "%d", &chksum);
 
-		w->wod_last = iter_time;
+		if (sum == chksum)
+		{
+			fseek(high_scores, 0, SEEK_SET);
 
-		break;
+			// citanje liste
+			for (i = 0; i < 10; i++)
+			{
+				t = (struct ScoreList*) malloc(sizeof(struct ScoreList));
+
+				while ((ch = fgetc(high_scores)) != ' ');
+
+				t->name = NULL;
+
+				j = 0;
+				while ((ch = fgetc(high_scores)) != ' ')
+				{
+					if (j % 10 == 0) t->name = realloc(t->name, (j + 10) * sizeof(char));
+					t->name[j++] = ch;
+				}
+				if (j % 10 == 0) t->name = realloc(t->name, (j + 1) * sizeof(char));
+				t->name[j] = '\0';
+
+				pts = NULL;
+
+				j = 0;
+				while ((ch = fgetc(high_scores)) != '\n')
+				{
+					if (j % 10 == 0) pts = realloc(pts, (j + 10) * sizeof(char));
+					pts[j++] = ch;
+				}
+				if (j % 10 == 0) pts = realloc(pts, (j + 1) * sizeof(char));
+				pts[j] = '\0';
+
+				t->points = atoi(pts);
+				t->next = NULL;
+
+				if (!s) slist = t;
+				else s->next = t;
+				s = t;
+			}
+		}
+		fclose(high_scores);
+	}
+
+	// ubacivanje u listu
+	i = 1;
+	s = slist;
+	while (s && points <= s->points)
+	{
+		p = s;
+		s = s->next;
+		i++;
+	}
+	t = (struct ScoreList*) malloc(sizeof(struct ScoreList));
+
+	t->name = (char*) malloc(21 * sizeof(char));
+	if (i <= 10)
+	{
+		input_win = newwin(5, 30, LINES / 2 - 3, COLS / 2 - 15);
+		box(input_win, 0, 0);
+		mvwprintw(input_win, 2, 2, "Name:");
+		
+		j = 0;
+		while ((ch = mvwgetch(input_win, 2, 8 + j)) != 10)
+		{
+			if (ch == 27)
+			{
+				j = 0;
+				break;
+			}
+
+			if (ch == 8) j = max(j--, 0);
+			else if (j < 20 && ch >= 32 && ch <= 126) t->name[j++] = ch == ' ' ? '_' : ch;
+			t->name[j] = '\0';
+
+			mvwprintw(input_win, 2, 2, "Name: %s", t->name);
+			for (k = j; k < 20; k++) wprintw(input_win, " ");
+		}
+		if (j == 0) t->name = "<unnamed_player>";
+
+		delwin(input_win);
+	}
+	else t->name = "newb!";
+
+	t->points = points;
+	t->next = s;
+	if (!p) slist = t;
+	else p->next = t;
+
+	// ispis liste
+	high_scores = fopen("data/highscores.txt", "w");
+		
+	s = slist;
+	for (i = 1; i <= 10; i++)
+	{
+		if (s)
+		{
+			fprintf(high_scores, "%d. %s %d\n", i, s->name, s->points);
+			s = s->next;
+		}
+		else fprintf(high_scores, "%d. ----- 0\n", i);
+	}
+	
+	high_scores = freopen("data/highscores.txt", "r", high_scores);
+	sum = 0;
+	for (i = 0; i < 10; i++)
+	{
+		while ((ch = fgetc(high_scores)) != '\n')
+		{
+			sum += ch;
+		}
+	}
+
+	high_scores = freopen("data/highscores.txt", "a", high_scores);
+	fprintf(high_scores, "%d", sum);
+	
+	fclose(high_scores);
+	while (slist)
+	{
+		s = slist;
+		slist = slist->next;
+		free(s);
 	}
 }
 void free_stuff(void)
@@ -1008,14 +1227,13 @@ void free_stuff(void)
 int campaign(void)
 {
 	/* ~Initialization~ */
-    int ch, lives = 5, level = 1, win;
+    int ch, level = 1, win;
 	bool running;
 	
-	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, mlist_front = NULL, mlist_rear = NULL, flist_front = NULL, flist_rear = NULL;
+	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 	
 	mode = 1, m = 11, n = 15, per = 50;
-	bombs = 1, range = 1, powers = 0, health = 1;
-	points = 0;
+	lives = 5, bombs = 1, range = 1, powers = 0, health = 1, points = 0;
 
 	init_screen(m, n, 1);
 	create_map(level);
@@ -1082,7 +1300,7 @@ int campaign(void)
 		if (win == -1) break;
 		else if (win) 
 		{
-			points += (time_end - iter_time) * 10;
+			points += ((time_end - iter_time) / CLOCKS_PER_SEC) * 5; // 5pts/sec
 			free_stuff();
 
 			level++;
@@ -1096,7 +1314,7 @@ int campaign(void)
 			}
 			else
 			{
-				blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, mlist_front = NULL, mlist_rear = NULL, flist_front = NULL, flist_rear = NULL;
+				blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 				
 				if (level == 6) init_screen(m, n, 2);
 				//if (level == 11) init_screen(m, n, 3);
@@ -1115,7 +1333,7 @@ int campaign(void)
 					plist_front->next->player->x = n / 2;
 					plist_front->next->player->health = 2;
 					plist_front->next->player->bombs = 2 + level / 5; 
-					plist_front->next->player->bomb_range = 1 + level / 5;
+					plist_front->next->player->bomb_range = 2 + level / 5;
 				}
 				else init_players(1, 0);
 								
@@ -1152,6 +1370,11 @@ int campaign(void)
 				plist_front->player->bombs = bombs;
 				plist_front->player->bomb_range = range;
 				plist_front->player->powers = powers;
+				if (level % 5 == 0)
+				{
+					plist_front->player->y = m - 4;
+					plist_front->player->x = n / 2;
+				}
 			}
 			else 
 			{
@@ -1160,6 +1383,9 @@ int campaign(void)
 			}
 		}
 	}
+
+	/* ~High-score update~ */
+	if (points) update_scores();
 	
 	free_stuff();
 	del_stuff();
@@ -1173,8 +1399,6 @@ int battle(int num_players, int num_bots, int req_wins)
     /* ~Initialization~ */
     int ch, winner, arena = rand() % 2 + 1;
 	bool running;
-	
-	struct WallOfDeath *w = NULL;
 
 	int *scores = (int*) calloc(num_players + num_bots, sizeof(int));
 
@@ -1182,22 +1406,26 @@ int battle(int num_players, int num_bots, int req_wins)
 	
 	if (num_players + num_bots > 4) m = 13, n = 17, per = 80;
 	else m = 11, n = 15, per = 60;
+	init_screen(m, n, arena);
 
 	while (1)
 	{
 		winner = -1;
 		running = TRUE;
 		
-		blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, mlist_front = NULL, mlist_rear = NULL, flist_front = NULL, flist_rear = NULL;
+		w = NULL, blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 	
-		init_screen(m, n, arena);
 		create_map(0);
 		w = init_wod(w);
 		init_players(num_players, num_bots);
+
 		draw(screen, blist_front, plist_front, mlist_front);
  
+		// calm before the storm
+		Sleep(500);
+
 		time_end = clock() + GAME_TIME * CLOCKS_PER_SEC;
-		w->wod_start = time_end - WOD_TIME * CLOCKS_PER_SEC;
+		w->wod_start = time_end - (GAME_TIME / 2) * CLOCKS_PER_SEC;
 
 		/* ~The Game Loop!~ */
 		while (running)
@@ -1226,7 +1454,7 @@ int battle(int num_players, int num_bots, int req_wins)
 			if (plist_front == NULL || plist_front->next == NULL || time_end <= iter_time)
 			{
 				running = FALSE;
-				w->wodstop = TRUE;
+				w->alive = FALSE;
 
 				if (plist_front == NULL || time_end <= iter_time) winner = 0; // no winner
 				else if (plist_front->next == NULL)
@@ -1262,6 +1490,256 @@ int battle(int num_players, int num_bots, int req_wins)
 	free(scores);
 	del_stuff();
 
+	clear();
+	refresh();
+    return 0;
+}
+
+char* random_bits(void)
+{
+	int i;
+	char bits[CHROMO_LENGTH + 1];
+
+	for (i = 0; i < CHROMO_LENGTH; i++)
+	{
+		if (RANDOM_NUM > 0.5f) bits[i] = '1';
+		else bits[i] = '0';
+	}
+	bits[CHROMO_LENGTH] = '\0';
+
+	return bits;
+}
+char bin_to_dec(char bits[GENE_LENGTH])
+{
+	int i, val = 0, value_to_add = 1;
+
+	for (i = GENE_LENGTH; i > 0; i--)
+	{
+		if (bits[i - 1] == '1') val += value_to_add;
+		value_to_add *= 2;
+	}
+
+	return val + '0';
+}
+char* decode_gene(char gene[CHROMO_LENGTH + 1])
+{
+	int i, j, k, l, dec;
+	bool f;
+	char code[(CHROMO_LENGTH / GENE_LENGTH) + 1], buffer[GENE_LENGTH];
+	
+	for (i = 0, j = 0, k = 0; i < CHROMO_LENGTH; i++)
+	{
+		buffer[j++] = gene[i];
+		if (j == GENE_LENGTH)
+		{
+			dec = bin_to_dec(buffer);
+
+			f = TRUE;
+			for (l = 0; l < k; l++)
+			{
+				if (code[l] == dec)
+				{
+					f = FALSE;
+					break;
+				}
+			}
+
+			if (f) code[k++] = dec;
+			j = 0;
+		}
+	}
+	
+	code[k] = '\0';
+	return code;
+}
+void mutate(char* bits)
+{
+	int i;
+	for (i = 0; i < CHROMO_LENGTH; i++)
+	{
+		if (RANDOM_NUM < MUTATION_RATE)
+		{
+			if (bits[i] == '1')
+				bits[i] = '0';
+			else
+				bits[i] = '1';
+		}
+	}
+}
+void crossover(char* offspring1, char* offspring2)
+{
+	int cross, i;
+	char t;
+
+	if (RANDOM_NUM < CROSSOVER_RATE)
+	{
+		cross = (int) (RANDOM_NUM * CHROMO_LENGTH);
+	
+		for (i = cross; i < CHROMO_LENGTH; i++)
+		{
+			t = offspring1[i];
+			offspring1[i] = offspring2[i];
+			offspring2[i] = t;
+		}			  
+	}
+}
+char* roulette(int total_fitness)
+{
+	float fitness = 0.0f, slice = (float)(RANDOM_NUM * total_fitness);
+	struct PlayerList *p = plist_front;
+
+	while (p)
+	{
+		fitness += p->player->health;
+		
+		if (fitness >= slice)
+			return p->player->gene;
+
+		p = p->next;
+	}
+
+	return "";
+}	
+int training_area(void)
+{
+	/* ~Initialization~ */
+	int i, cpop, generation = 0, max;
+	float total_fitness;
+	char offspring1[CHROMO_LENGTH + 1], offspring2[CHROMO_LENGTH + 1], population[POP_SIZE][CHROMO_LENGTH + 1], fittest[(CHROMO_LENGTH / GENE_LENGTH) + 1];
+
+    int ch, arena = rand() % 2 + 1;
+	bool running;
+	struct PlayerList *p;
+	
+	w = NULL, blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
+
+	mode = 2;
+	
+	m = 13, n = 17, per = 80;
+	init_screen(m, n, arena);
+
+	for (i = 0; i < POP_SIZE; i++)
+	{
+		strcpy(population[i], random_bits());
+	}
+
+	while (1)
+	{
+		running = TRUE;
+		
+		w = NULL, blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
+
+		create_map(0);
+		w = init_wod(w);
+		init_players(0, POP_SIZE);
+
+		p = plist_front;
+		for (i = 0; i < POP_SIZE; i++)
+		{
+			p->player->health = 5;
+			strcpy(p->player->gene, population[i]);
+			strcpy(p->player->code, decode_gene(population[i]));
+
+			p = p->next;
+		}
+
+		draw(screen, blist_front, plist_front, mlist_front);
+ 
+		time_end = clock() + GEN_TIME * CLOCKS_PER_SEC;
+		w->wod_start = time_end - (GEN_TIME / 2) * CLOCKS_PER_SEC;
+
+		/* ~The Game Loop!~ */
+		while (running)
+		{
+			iter_time = clock();
+		
+			ch = wgetch(game_win);
+
+			/* Function keys */
+			switch (ch)
+			{
+			case 27:
+				running = FALSE;
+				break;
+			case 10:
+				pause(&running);
+			case 'r':
+				running = FALSE;
+				break;
+			}
+
+			player_action(ch, 0, POP_SIZE);
+			player_update();
+			bomb_update();
+			fire_update();
+			wod_update(w);
+
+			/* Game over? */
+			if (/*plist_front == NULL || plist_front->next == NULL ||*/ time_end <= iter_time)
+			{
+				running = FALSE;
+				w->alive = FALSE;
+			}
+		
+			draw(screen, blist_front, plist_front, mlist_front);
+
+			if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
+		}
+
+
+		generation++;
+
+		/* Breeding a new generation */
+		/* ...but only if there are survivors */
+		if (plist_front)
+		{
+			max = -1;
+			total_fitness = 0;
+			p = plist_front;
+			while (p)
+			{
+				total_fitness += p->player->health;
+				if (p->player->health >= max) 
+				{
+					max = p->player->health;
+					strcpy(fittest, p->player->code);
+				}
+
+				p = p->next;
+			}
+
+			update_hud(generation, fittest, max);
+
+			cpop = 0;
+	  
+			while (cpop < POP_SIZE)
+			{
+				strcpy(offspring1, roulette(total_fitness));
+				strcpy(offspring2, roulette(total_fitness));
+
+				crossover(offspring1, offspring2);
+	
+				mutate(offspring1);
+				mutate(offspring2);
+
+				strcpy(population[cpop++], offspring1);
+				strcpy(population[cpop++], offspring2);
+			}
+		}
+		else
+		{
+			for (i = 0; i < POP_SIZE; i++)
+			{
+				strcpy(population[i], random_bits());
+			}
+		}
+
+
+		free_stuff();
+		if (ch == 27) break;
+	}
+
+	del_stuff();
 	clear();
 	refresh();
     return 0;

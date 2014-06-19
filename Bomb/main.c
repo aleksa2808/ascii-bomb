@@ -41,6 +41,7 @@ void print_menu(WINDOW*, int, struct m_list);
 
 extern int campaign(void);
 extern int battle(int, int, int);
+extern int training_area(void);
 void updConfigs();
 
 
@@ -327,6 +328,13 @@ int main()
 						if (rep==-1) break;
 
 						battle(plr, bts, wns);
+						resize_term(50,100);
+						menu_start = clock();
+						break;
+					case 22:
+						clear();
+						refresh();
+						training_area();
 						resize_term(50,100);
 						menu_start = clock();
 						break;

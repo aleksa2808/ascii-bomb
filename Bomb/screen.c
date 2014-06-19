@@ -1,7 +1,7 @@
 #include <curses.h>
 #include <time.h>
 #include <stdlib.h>
-WINDOW *game_win, *hud_win;
+WINDOW *game_win = NULL, *hud_win = NULL;
 #define MAP_SPRITE_NUM 20
 #define BOMB_TIME 2
 
@@ -14,10 +14,17 @@ typedef struct{
 	short col1[4][6],col2[4][6];
 }	Sprite;
 
+//gen_alg
+#define CHROMO_LENGTH             60
+#define GENE_LENGTH               3
+int gen, health;
+char *fittest;
+
 typedef struct {
 	int id, type, x, y, health, bombs, bomb_range, action, last_action, immortal_end, last_move, speed;
 	bool immortal;
 	unsigned char powers;
+	char gene[CHROMO_LENGTH + 1], code[(CHROMO_LENGTH / GENE_LENGTH) + 1];
 } Player;
 typedef struct { 
 	Player *owner;
@@ -37,36 +44,17 @@ Sprite sprMap[MAP_SPRITE_NUM],sprBomb[3];
 extern int time_end, iter_time;
 
 void init_screen(int mm, int nn, int arena_id)
-{	FILE *dat;
+{	
+	FILE *dat;
 	char t1,t2;
 	int i, j, l;
 	int k;
 
-	clear();
-
-
-
     m = mm;
     n = nn;
     resize_term(10 + m * 4,n * 6);
- 
-    
 
-	/*
-    init_pair(1, COLOR_GREEN, COLOR_GREEN);
-    init_pair(2, COLOR_BLUE, COLOR_GREEN);
-    init_pair(3, COLOR_WHITE, COLOR_WHITE);
-    init_pair(4, COLOR_YELLOW, COLOR_CYAN);
-    init_pair(5, COLOR_MAGENTA,COLOR_GREEN);
-	init_pair(6, COLOR_YELLOW, COLOR_RED);
-	init_pair(7, COLOR_RED, COLOR_YELLOW);
-    init_pair(12, 0, 14);
-    init_pair(13, 0, 13);
-    init_pair(14, 0, 12);
-    init_pair(15, 0, 11);
-    init_pair(16, 0, 10);
-    */
-
+	gen = 0;
 
     game_win = newwin(m * 4, n * 6, 10, 0);
     keypad(game_win, TRUE);
@@ -127,39 +115,6 @@ void init_screen(int mm, int nn, int arena_id)
 		}
 	}
 	fclose(dat);
-	/**/
-
-
-
-
-    /*mvwprintw(hud_win, 4, 5, "Press ");
-	wattron(hud_win, A_BOLD); 
-    wprintw(hud_win, "Esc");
-	wattroff(hud_win, A_BOLD); 
-    wprintw(hud_win, " to get back");
-    mvwprintw(hud_win, 5, 4, "  to the main menu.");
-
-	wattron(hud_win, COLOR_PAIR(12));
-    mvwprintw(hud_win, 7, 4, "BOMBS+");
-	wattroff(hud_win, COLOR_PAIR(12));
-
-	wattron(hud_win, COLOR_PAIR(13));
-    mvwprintw(hud_win, 8, 4, "RANGE+");
-	wattroff(hud_win, COLOR_PAIR(13));
-
-	wattron(hud_win, COLOR_PAIR(14));
-    mvwprintw(hud_win, 9, 4, "LIFE+");
-	wattroff(hud_win, COLOR_PAIR(14));
-	
-	wattron(hud_win, COLOR_PAIR(15));
-    mvwprintw(hud_win, 10, 4, "PASS THROUGH WALLS");
-	wattroff(hud_win, COLOR_PAIR(15));
-	
-	wattron(hud_win, COLOR_PAIR(16));
-    mvwprintw(hud_win, 11, 4, "IMMORTAL!");
-	wattroff(hud_win, COLOR_PAIR(16));*/
-
-    //wrefresh(hud_win);
 }
 
 void draw_tile(int posx,int posy, Sprite spr){
@@ -325,6 +280,8 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	wattroff(hud_win, COLOR_PAIR(hudcol));
 	wattron (hud_win,COLOR_PAIR(hudcol));
 	mvwprintw(hud_win, 2, COLS / 2 - 2, "%d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
+	if (gen > 0)
+		wprintw(hud_win, "  Gen: %d / Fittest: %s with %d hp left.", gen, fittest, health);
 	wattroff (hud_win, COLOR_PAIR(hudcol));
 	
 	i=0;
@@ -345,6 +302,14 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	wrefresh(hud_win);
 	
 }
+
+void update_hud(int g, char f[(CHROMO_LENGTH / GENE_LENGTH) + 1], int h)
+{
+	gen = g;
+	fittest = f;
+	health = h;
+}
+
 void del_stuff()
 {
 	delwin(game_win);

@@ -47,34 +47,37 @@ Player *bot;
 bool safe(int y, int x)
 {
 	struct BombList *b;
-	int i = 0, range = 10;
+	int i = 0, range = bot->bomb_range + 2;
 	
 	// avoiding fire
 	if (screen[y][x] == 5)
 		return FALSE;
 
 	// avoiding the Wall
-	if (!w->alive && w->wod_start < iter_time + 5000 && y == 1) return FALSE;
-	else if (w->alive)
+	if (w)
 	{
-		switch (w->dir)
+		if (!w->alive && w->wod_start < iter_time + 5000 && y == 1) return FALSE;
+		else if (w->alive)
 		{
-		case 1:
-			if (y - 1 <= w->inc) return FALSE;
-			if ((n - 2) - x <= w->inc) return FALSE;
-			break;
-		case 2:
-			if ((n - 2) - x <= w->inc) return FALSE;
-			if ((m - 2) - y <= w->inc) return FALSE;
-			break;
-		case 3:
-			if ((m - 2) - y <= w->inc) return FALSE;
-			if (x - 1 <= w->inc) return FALSE;
-			break;
-		case 4:
-			if (x - 1 <= w->inc) return FALSE;
-			if (y - 1 <= w->inc) return FALSE;
-			break;
+			switch (w->dir)
+			{
+			case 1:
+				if (y - 1 <= w->inc) return FALSE;
+				if ((n - 2) - x <= w->inc) return FALSE;
+				break;
+			case 2:
+				if ((n - 2) - x <= w->inc) return FALSE;
+				if ((m - 2) - y <= w->inc) return FALSE;
+				break;
+			case 3:
+				if ((m - 2) - y <= w->inc - 1) return FALSE;
+				if (x - 1 <= w->inc - 1) return FALSE;
+				break;
+			case 4:
+				if (x - 1 <= w->inc) return FALSE;
+				if (y - 1 <= w->inc) return FALSE;
+				break;
+			}
 		}
 	}
 
@@ -146,7 +149,7 @@ bool safe(int y, int x)
 }
 int safe_dir(int y, int x)
 {
-	int i, dir = 0, choices[4], num_choices = 0, min = bot->bomb_range, ind = 0;
+	int i, dir = 0, choices[4], num_choices = 0, min = 5, ind = 0;
 	for (i = 1; i <= min; i++){
 		if (!can_pass(bot, screen[y][x + i]) || screen[y][x + i] == 5) break;
 		else 
@@ -221,10 +224,83 @@ int safe_dir(int y, int x)
 		}
 	}
 
-	/*if (!num_choices && (bot->powers & 0x10))
+	min = 5;
+	if (!num_choices && (bot->powers & 0x1))
 	{
-
-	}*/
+		for (i = 1; i <= min; i++){
+			if ((!can_pass(bot, screen[y][x + i]) && screen[y][x + i] != 4) || screen[y][x + i] == 5) break;
+			else 
+			{
+				if (screen[y][x + i] == 4 && screen[y][x + i + 1] == 0) 
+				{
+					min = i;
+					num_choices++;
+					choices[ind++] = 1;
+					break;
+				}
+			}
+		}
+		for (i = 1; i <= min; i++){
+			if ((!can_pass(bot, screen[y + i][x]) && screen[y + i][x] != 4) || screen[y + i][x] == 5) break;
+			else 
+			{
+				if (screen[y + i][x] == 4 && screen[y + i + 1][x] == 0) 
+				{
+					if (i <= min)
+					{
+						choices[ind++] = 2;
+						if (i == min) num_choices++;
+						else
+						{
+							min = i;
+							num_choices = 1;
+						}
+					}
+					break;
+				}
+			}
+		}
+		for (i = 1; i <= min; i++){
+			if ((!can_pass(bot, screen[y][x - i]) && screen[y][x - i] != 4) || screen[y][x - i] == 5) break;
+			else 
+			{
+				if (screen[y][x - i] == 4 && screen[y][x - i - 1] == 0) 
+				{
+					if (i <= min)
+					{
+						choices[ind++] = 3;
+						if (i == min) num_choices++;
+						else
+						{
+							min = i;
+							num_choices = 1;
+						}
+					}
+					break;
+				}
+			}
+		}
+		for (i = 1; i <= min; i++){
+			if ((!can_pass(bot, screen[y - i][x]) && screen[y - i][x] != 4) || screen[y - i][x] == 5) break;
+			else 
+			{
+				if (screen[y - i][x] == 4 && screen[y - i - 1][x] == 0) 
+				{
+					if (i <= min)
+					{
+						choices[ind++] = 4;
+						if (i == min) num_choices++;
+						else
+						{
+							min = i;
+							num_choices = 1;
+						}
+					}
+					break;
+				}
+			}
+		}
+	}
 
 	return num_choices ? choices[--ind - rand() % num_choices] : 0;
 }
@@ -469,7 +545,7 @@ int hunt_players(void)
 	struct PlayerList *p = plist_front;
 	Player *tar = NULL;
 	
-	if (bot->bombs && can_kill() && should_place_bomb(y, x)) return 0;
+	if (can_kill()) return 0;
 
 	if (p && p->next)
 	{
@@ -517,16 +593,19 @@ int hunt_players(void)
 void bot_action(Player *current_bot)
 {
 	int dir, y = current_bot->y, x = current_bot->x, i;
-	char *commands = current_bot->code;
+	char *commands = current_bot->code, com;
 	bot = current_bot;
-
+	
 	// miss?
-	if (rand() % 100 < 20) bot->action = -1;
+	//if (rand() % 100 < 20) bot->action = -1;
 
 	i = 0;
-	while (commands[i] != '\0' && !bot->action)
+	while ((com = commands[i++]) != '\0' && !bot->action)
 	{
-		switch(commands[i++])
+		// miss?
+		//if (rand() % 100 < 20) com = rand() % 8 + '0';
+
+		switch(com)
 		{
 		case '0':
 			break;
@@ -543,7 +622,6 @@ void bot_action(Player *current_bot)
 			bot->action = destroy_blocks();
 			break;
 		case '5':
-			bot->action = hunt_players();
 			break;
 		case '6':
 			switch (rand() & 31)
@@ -564,6 +642,8 @@ void bot_action(Player *current_bot)
 			break;
 		}
 	}
+	
+	if (!bot->action) bot->action = hunt_players();
 }
 void mob_action(Player *current_mob)
 {

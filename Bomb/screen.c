@@ -1,7 +1,8 @@
 #include <curses.h>
 #include <time.h>
 #include <stdlib.h>
-WINDOW *game_win = NULL, *hud_win = NULL;
+#include <Windows.h>
+WINDOW *game_win, *hud_win;
 #define MAP_SPRITE_NUM 20
 #define BOMB_TIME 2
 
@@ -17,7 +18,7 @@ typedef struct{
 //gen_alg
 #define CHROMO_LENGTH             60
 #define GENE_LENGTH               3
-int gen, health;
+int gen, hp;
 char *fittest;
 
 typedef struct {
@@ -164,7 +165,6 @@ void draw_bomb(int posx, int posy, Sprite spr, int k){
 }
 void draw_player(int posx, int posy, Sprite spr, Sprite bckgr, int ID, int immo, int trnp){
 	int i,j,col1,col2, t;
-	char ch;
 	static int turn[10] = {0};
 	static int playercolor[10]= {15, 14, 13, 12, 11, 10, 9, 2};
 
@@ -253,7 +253,7 @@ void draw_hudp(Sprite spr, int ID){
 void draw(char **screen, struct BombList *b, struct PlayerList *p)
 {	
 	static int k;
-    int i, j, pnum, clk;
+    int i, j, clk;
 	double temptime;
     wclear(game_win);
     for (i=0; i<m; i++){
@@ -280,8 +280,8 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	wattroff(hud_win, COLOR_PAIR(hudcol));
 	wattron (hud_win,COLOR_PAIR(hudcol));
 	mvwprintw(hud_win, 2, COLS / 2 - 2, "%d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
-	if (gen > 0)
-		wprintw(hud_win, "  Gen: %d / Fittest: %s with %d hp left.", gen, fittest, health);
+	if (gen > 0) 
+		wprintw(hud_win, "  Gen: %d / Fattest: %s, ate %d of pie.", gen, fittest, hp);
 	wattroff (hud_win, COLOR_PAIR(hudcol));
 	
 	i=0;
@@ -300,14 +300,13 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	if (k > 3000) k = 0;
 	wrefresh(game_win);
 	wrefresh(hud_win);
-	
 }
 
 void update_hud(int g, char f[(CHROMO_LENGTH / GENE_LENGTH) + 1], int h)
 {
 	gen = g;
 	fittest = f;
-	health = h;
+	hp = h;
 }
 
 void del_stuff()
@@ -385,9 +384,9 @@ void scoreboard(int *scores, int num){
 		
 	}
 	refresh();
-	k=0;
-	while (k!=32){
-		k = getch();
-	}
-
+	//k=0;
+	//while (k!=32){
+	//	k = getch();
+	//}
+	Sleep(1500);
 }

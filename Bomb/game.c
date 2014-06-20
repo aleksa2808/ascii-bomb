@@ -3,6 +3,9 @@
 #include <time.h>
 #include <Windows.h>
 
+// 1000 = 1sec // never below 100!
+#define TIME_SLICE 100
+
 #define EMPTY 0
 #define STONE_WALL 2
 #define WALL 3
@@ -30,7 +33,7 @@
 #define POWER_CHANCE 10
 
 // GenAlg stuff
-#define RANDOM_NUM		((float)rand()/(RAND_MAX+1)) // {0..1}
+#define RANDOM_NUM		((float)rand()/(RAND_MAX+1)) // [0..1]
 
 #define CROSSOVER_RATE            0.7
 #define MUTATION_RATE             0.01
@@ -76,7 +79,6 @@ typedef struct ScoreList {
 char **screen;
 struct BombList *blist_front, *blist_rear;
 struct PlayerList *plist_front, *plist_rear;
-struct MobList *mlist_front, *mlist_rear;
 struct FireList *flist_front, *flist_rear;
 int time_end, iter_time, m, n, per, mode;
 WallOfDeath *w;
@@ -89,7 +91,7 @@ extern WINDOW *game_win;
 extern int sdon;
 
 extern void init_screen(int, int, int);
-extern void draw(char**, struct BombList*, struct PlayerList*, struct MobList*);
+extern void draw(char**, struct BombList*, struct PlayerList*);
 extern void scoreboard(int *scores, int num);
 extern void update_hud(int, char[(CHROMO_LENGTH / GENE_LENGTH) + 1], int);
 extern void del_stuff(void);
@@ -112,25 +114,25 @@ void create_map(int level)
 	/* ~Map creation~ */
     /* Grass */
     for (i = 0; i < m; i++)
-            for (j = 0; j < n; j++)
-                    screen[i][j] = EMPTY;
+        for (j = 0; j < n; j++)
+            screen[i][j] = EMPTY;
  
     /* Borders */
     for (i = 0; i < m; i++)
     {
-            screen[i][0] = STONE_WALL;
-            screen[i][n - 1] = STONE_WALL;
+        screen[i][0] = STONE_WALL;
+        screen[i][n - 1] = STONE_WALL;
     }
     for (i = 0; i < n; i++)
     {
-            screen[0][i] = STONE_WALL;
-            screen[m - 1][i] = STONE_WALL;
+		screen[0][i] = STONE_WALL;
+		screen[m - 1][i] = STONE_WALL;
     }
        
     /* Blocks */
     for (i = 2; i < m - 1; i += 2)
-            for (j = 2; j < n - 1; j += 2)
-                    screen[i][j] = STONE_WALL;
+		for (j = 2; j < n - 1; j += 2)
+			screen[i][j] = STONE_WALL;
 
     /* Destructibles */
 	if (!(mode == 1 && level % 5 == 0)) // if not boss level
@@ -139,13 +141,13 @@ void create_map(int level)
 		fill = fill * (per/100.0);
 		for (i = 0; i < fill; i++)
 		{
-				do
-				{
-						my = rand()%(m - 2) + 1;
-						mx = rand()%(n - 2) + 1;
-				}
-				while (screen[my][mx] != EMPTY);
-				screen[my][mx] = WALL;
+			do
+			{
+				my = rand()%(m - 2) + 1;
+				mx = rand()%(n - 2) + 1;
+			}
+			while (screen[my][mx] != EMPTY);
+			screen[my][mx] = WALL;
 		}
 	}
 }
@@ -182,7 +184,7 @@ WallOfDeath* init_wod(WallOfDeath *w)
 }
 void spawn(int id, Player *player, int y, int x)
 {
-	screen[y][x] = EMPTY;
+	if (screen[y][x] == WALL) screen[y][x] = EMPTY;
 	if (screen[y][x + 1] == WALL) screen[y][x + 1] = EMPTY;
 	if (screen[y + 1][x] == WALL) screen[y + 1][x] = EMPTY;
 	if (screen[y][x - 1] == WALL) screen[y][x - 1] = EMPTY;
@@ -200,10 +202,10 @@ void spawn(int id, Player *player, int y, int x)
 	player->last_move = 0;
 	player->action = 0;
 	player->last_action = 0;
-	player->speed = 300;
+	player->speed = 0.3 * TIME_SLICE;
 	
 	strcpy(player->gene, "000000000000000000000000000000000000000000000000000000000000");
-	strcpy(player->code, "1234567");
+	strcpy(player->code, "01234567");
 }
 void player_queue(Player *player)
 {
@@ -349,7 +351,7 @@ void init_mobs(int level)
 			else
 				player->last_action = 4;
 		}
-		player->speed = 500;
+		player->speed = 0.5 * TIME_SLICE;
 	}
 }
 void pause(bool *running)
@@ -424,7 +426,7 @@ void power_time(Player *player)
 		break;
 	case IMMORTAL:
 		player->immortal = TRUE;
-		player->immortal_end = iter_time + IMMORTAL_TIME * CLOCKS_PER_SEC;
+		player->immortal_end = iter_time + IMMORTAL_TIME * TIME_SLICE;
 		break;
 	case BOMB_PUSH:
 		player->powers |= 0x1;
@@ -551,7 +553,7 @@ int do_action(Player *player)
 				b->bomb = (Bomb*) malloc(sizeof(Bomb));
 				b->bomb->owner = player;
 				b->bomb->range = player->bomb_range;
-				b->bomb->end_time = iter_time + BOMB_TIME * CLOCKS_PER_SEC;
+				b->bomb->end_time = iter_time + BOMB_TIME * TIME_SLICE;
 				b->bomb->x = player->x;
 				b->bomb->y = player->y;
 				b->bomb->xdir = 0;
@@ -581,7 +583,7 @@ void fire_queue(int y, int x)
 	struct FireList *f = (struct FireList*) malloc(sizeof(struct FireList));
 	f->x = x;
 	f->y = y;
-	f->end_time = iter_time + FIRE_TIME * CLOCKS_PER_SEC;
+	f->end_time = iter_time + FIRE_TIME * TIME_SLICE;
 	f->next = NULL;
 	if (flist_rear == NULL) 
 	{
@@ -627,7 +629,7 @@ int xplosion_logic(int y, int x)
 		break;
 	case FIRE:
 		f = get_fire(y, x);
-		f->end_time = iter_time + FIRE_TIME * CLOCKS_PER_SEC;
+		f->end_time = iter_time + FIRE_TIME * TIME_SLICE;
 
 		/* "We should take this fire...
 			and push it somewhere else!" */
@@ -655,7 +657,7 @@ int xplosion_logic(int y, int x)
 			player->bombs = 0;
 			player->bomb_range = 0;
 			player->immortal = TRUE;
-			player->immortal_end = iter_time + IMMORTAL_TIME * CLOCKS_PER_SEC;
+			player->immortal_end = iter_time + IMMORTAL_TIME * TIME_SLICE;
 			player->powers = 0;
 			player->last_move = 0;
 			player->action = 0;
@@ -663,9 +665,9 @@ int xplosion_logic(int y, int x)
 			else if (can_pass(player, screen[y][x = 1])) player->last_action = 3;
 			else if (can_pass(player, screen[y + 1][x])) player->last_action = 2;
 			else player->last_action = 4;
-			player->speed = 500;
+			player->speed = 0.5 * TIME_SLICE;
 
-			exit_spawn = iter_time + 2 * CLOCKS_PER_SEC;
+			exit_spawn = iter_time + 2 * TIME_SLICE;
 		}
 		break;
 	case BOMBS_UP: /* Power-ups getting destroyed :'( */
@@ -834,7 +836,7 @@ void player_update(void)
 		{
 			p->player->health--;
 			p->player->immortal = TRUE;
-			p->player->immortal_end = iter_time + IMMORTAL_TIME * CLOCKS_PER_SEC;
+			p->player->immortal_end = iter_time + IMMORTAL_TIME * TIME_SLICE;
 			if (p->player->health == 0 || screen[p->player->y][p->player->x] == STONE_WALL)
 			{
 				// death_animation();
@@ -889,8 +891,8 @@ void bomb_update(void)
 			b = bb;
 		}
 		else 
-		{   // UNDER CONSTRUCTION
-			if ((b->bomb->ydir || b->bomb->xdir) && b->bomb->last_move + 10 <= iter_time)
+		{
+			if ((b->bomb->ydir || b->bomb->xdir) && b->bomb->last_move + 0.01 * TIME_SLICE <= iter_time)
 			{
 				switch (screen[b->bomb->y + b->bomb->ydir][b->bomb->x + b->bomb->xdir])
 				{
@@ -975,7 +977,7 @@ void wod_update(WallOfDeath *w)
 	struct FireList *f;
 
 	if (!w->alive && w->wod_start <= iter_time) w->alive = TRUE;
-	else while (w->alive && w->last_move + 0.2 * CLOCKS_PER_SEC <= iter_time)
+	else while (w->alive && w->last_move + 0.2 * TIME_SLICE <= iter_time)
 		{
 			switch (w->dir)
 			{
@@ -1246,9 +1248,9 @@ int campaign(void)
 	//
 	init_mobs(level);
 	spawn_exit(level);
-	draw(screen, blist_front, plist_front, mlist_front);
+	draw(screen, blist_front, plist_front);
 	
-	time_end = clock() + STORY_TIME * CLOCKS_PER_SEC;
+	time_end = clock() + STORY_TIME * TIME_SLICE;
 
 	while(1)
 	{
@@ -1256,7 +1258,7 @@ int campaign(void)
 		running = TRUE;
 
 		plist_front->player->immortal = TRUE;
-		plist_front->player->immortal_end = clock() + IMMORTAL_TIME * CLOCKS_PER_SEC;
+		plist_front->player->immortal_end = clock() + IMMORTAL_TIME * TIME_SLICE;
 
 		/* ~The Game Loop!~ */
 		while (running)
@@ -1292,7 +1294,7 @@ int campaign(void)
 				running = FALSE;
 			}
 					
-			draw(screen, blist_front, plist_front, mlist_front);
+			draw(screen, blist_front, plist_front);
 
 			if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
 		}
@@ -1300,7 +1302,7 @@ int campaign(void)
 		if (win == -1) break;
 		else if (win) 
 		{
-			points += ((time_end - iter_time) / CLOCKS_PER_SEC) * 5; // 5pts/sec
+			points += ((time_end - iter_time) / TIME_SLICE) * 5; // 5pts/sec
 			free_stuff();
 
 			level++;
@@ -1316,7 +1318,11 @@ int campaign(void)
 			{
 				blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 				
-				if (level == 6) init_screen(m, n, 2);
+				if (level == 6) 
+				{
+					del_stuff();
+					init_screen(m, n, 2);
+				}
 				//if (level == 11) init_screen(m, n, 3);
 				//if (level == 16) init_screen(m, n, 4);
 				create_map(level);
@@ -1344,9 +1350,9 @@ int campaign(void)
 
 				init_mobs(level);
 				spawn_exit(level);
-				draw(screen, blist_front, plist_front, mlist_front);
+				draw(screen, blist_front, plist_front);
 	
-				time_end = clock() + STORY_TIME * CLOCKS_PER_SEC;
+				time_end = clock() + STORY_TIME * TIME_SLICE;
 			}
 		}
 		else
@@ -1419,13 +1425,13 @@ int battle(int num_players, int num_bots, int req_wins)
 		w = init_wod(w);
 		init_players(num_players, num_bots);
 
-		draw(screen, blist_front, plist_front, mlist_front);
+		draw(screen, blist_front, plist_front);
  
 		// calm before the storm
 		Sleep(500);
 
-		time_end = clock() + GAME_TIME * CLOCKS_PER_SEC;
-		w->wod_start = time_end - (GAME_TIME / 2) * CLOCKS_PER_SEC;
+		time_end = clock() + GAME_TIME * TIME_SLICE;
+		w->wod_start = time_end - (GAME_TIME / 2) * TIME_SLICE;
 
 		/* ~The Game Loop!~ */
 		while (running)
@@ -1461,11 +1467,11 @@ int battle(int num_players, int num_bots, int req_wins)
 				{
 					winner = plist_front->player->id;
 					plist_front->player->immortal = TRUE;
-					plist_front->player->immortal_end = iter_time + 3600 * CLOCKS_PER_SEC;
+					plist_front->player->immortal_end = iter_time + 3600 * TIME_SLICE;
 				}
 			}
 		
-			draw(screen, blist_front, plist_front, mlist_front);
+			draw(screen, blist_front, plist_front);
 
 			if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
 		}
@@ -1583,33 +1589,39 @@ void crossover(char* offspring1, char* offspring2)
 		}			  
 	}
 }
-char* roulette(int total_fitness)
+char* roulette(int total_fitness, char population[POP_SIZE][CHROMO_LENGTH + 1], int* scores)
 {
+	int i;
 	float fitness = 0.0f, slice = (float)(RANDOM_NUM * total_fitness);
-	struct PlayerList *p = plist_front;
 
-	while (p)
+	for (i = 0; i < POP_SIZE; i++)
 	{
-		fitness += p->player->health;
+		fitness += scores[i];
 		
 		if (fitness >= slice)
-			return p->player->gene;
-
-		p = p->next;
+			return population[i];
 	}
 
 	return "";
-}	
+}
+int fact(int x)
+{
+	int res = x;
+	while (--x) res *= x;
+	return res;
+}
 int training_area(void)
 {
 	/* ~Initialization~ */
-	int i, cpop, generation = 0, max;
+	int i, num, cpop, generation = 1, max;
 	float total_fitness;
-	char offspring1[CHROMO_LENGTH + 1], offspring2[CHROMO_LENGTH + 1], population[POP_SIZE][CHROMO_LENGTH + 1], fittest[(CHROMO_LENGTH / GENE_LENGTH) + 1];
+	char offspring1[CHROMO_LENGTH + 1], offspring2[CHROMO_LENGTH + 1], population[POP_SIZE][CHROMO_LENGTH + 1], temp[POP_SIZE][CHROMO_LENGTH + 1], fittest[(CHROMO_LENGTH / GENE_LENGTH) + 1];
 
-    int ch, arena = rand() % 2 + 1;
+    int ch, arena = rand() % 2 + 1, winner, tasty_pie = fact(POP_SIZE), slice_o_pie;
 	bool running;
 	struct PlayerList *p;
+
+	int *scores = (int*) calloc(POP_SIZE, sizeof(int));
 	
 	w = NULL, blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 
@@ -1618,13 +1630,11 @@ int training_area(void)
 	m = 13, n = 17, per = 80;
 	init_screen(m, n, arena);
 
-	for (i = 0; i < POP_SIZE; i++)
-	{
-		strcpy(population[i], random_bits());
-	}
+	for (i = 0; i < POP_SIZE; i++) strcpy(population[i], random_bits());
 
 	while (1)
 	{
+		winner = -1;
 		running = TRUE;
 		
 		w = NULL, blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
@@ -1636,17 +1646,16 @@ int training_area(void)
 		p = plist_front;
 		for (i = 0; i < POP_SIZE; i++)
 		{
-			p->player->health = 5;
 			strcpy(p->player->gene, population[i]);
 			strcpy(p->player->code, decode_gene(population[i]));
 
 			p = p->next;
 		}
 
-		draw(screen, blist_front, plist_front, mlist_front);
+		draw(screen, blist_front, plist_front);
  
-		time_end = clock() + GEN_TIME * CLOCKS_PER_SEC;
-		w->wod_start = time_end - (GEN_TIME / 2) * CLOCKS_PER_SEC;
+		time_end = clock() + GAME_TIME * TIME_SLICE;
+		w->wod_start = time_end - (GAME_TIME / 2) * TIME_SLICE;
 
 		/* ~The Game Loop!~ */
 		while (running)
@@ -1663,9 +1672,10 @@ int training_area(void)
 				break;
 			case 10:
 				pause(&running);
+				break;
 			case 'r':
 				running = FALSE;
-				break;
+				winner = 1;
 			}
 
 			player_action(ch, 0, POP_SIZE);
@@ -1675,71 +1685,103 @@ int training_area(void)
 			wod_update(w);
 
 			/* Game over? */
-			if (/*plist_front == NULL || plist_front->next == NULL ||*/ time_end <= iter_time)
+			if (plist_front == NULL || plist_front->next == NULL || time_end <= iter_time)
 			{
 				running = FALSE;
 				w->alive = FALSE;
+
+				if (plist_front == NULL || time_end <= iter_time) winner = 0; // no winner
+				else if (plist_front->next == NULL)
+				{
+					winner = plist_front->player->id;
+					plist_front->player->immortal = TRUE;
+					plist_front->player->immortal_end = iter_time + 3600 * TIME_SLICE;
+				}
 			}
 		
-			draw(screen, blist_front, plist_front, mlist_front);
+			draw(screen, blist_front, plist_front);
 
 			if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
 		}
 
-
-		generation++;
-
-		/* Breeding a new generation */
-		/* ...but only if there are survivors */
-		if (plist_front)
+		if (winner == -1) break;
+		else 
 		{
-			max = -1;
-			total_fitness = 0;
-			p = plist_front;
-			while (p)
+			if (winner) scores[winner - 1] += tasty_pie;
+			else if (p = plist_front)
 			{
-				total_fitness += p->player->health;
-				if (p->player->health >= max) 
+				num = 0;
+				while (p)
 				{
-					max = p->player->health;
-					strcpy(fittest, p->player->code);
+					num++;
+					p = p->next;
 				}
 
-				p = p->next;
+				slice_o_pie = tasty_pie / num;
+
+				p = plist_front;
+				while (p)
+				{
+					scores[p->player->id - 1] += slice_o_pie;
+					p = p->next;
+				}
 			}
 
-			update_hud(generation, fittest, max);
-
-			cpop = 0;
-	  
-			while (cpop < POP_SIZE)
-			{
-				strcpy(offspring1, roulette(total_fitness));
-				strcpy(offspring2, roulette(total_fitness));
-
-				crossover(offspring1, offspring2);
-	
-				mutate(offspring1);
-				mutate(offspring2);
-
-				strcpy(population[cpop++], offspring1);
-				strcpy(population[cpop++], offspring2);
-			}
-		}
-		else
-		{
+			max = 0;
 			for (i = 0; i < POP_SIZE; i++)
 			{
-				strcpy(population[i], random_bits());
+				if (scores[i] >= max) 
+				{
+					max = scores[i];
+					strcpy(fittest, decode_gene(population[i]));
+				}
+			}
+		
+			update_hud(generation, fittest, max);
+
+			if (max > 5 * tasty_pie)
+			{
+				// CHAMPION!
+				
+				generation++;
+
+				/* Breeding a new generation */
+				total_fitness = 0;
+				for (i = 0; i < POP_SIZE; i++) total_fitness += scores[i];
+
+				cpop = 0;
+	  
+				while (cpop < POP_SIZE)
+				{
+					strcpy(offspring1, roulette(total_fitness, population, scores));
+					strcpy(offspring2, roulette(total_fitness, population, scores));
+
+					crossover(offspring1, offspring2);
+	
+					mutate(offspring1);
+					mutate(offspring2);
+
+					strcpy(temp[cpop++], offspring1);
+					strcpy(temp[cpop++], offspring2);
+				}
+
+				for (i = 0; i < POP_SIZE; i++) strcpy(population[i], temp[i]);
+
+				// organizin' a new tournament
+				for (i = 0; i < POP_SIZE; i++) scores[i] = 0;
+				arena = arena % 2 + 1;
+
+				del_stuff();
+				init_screen(m, n, arena);
 			}
 		}
 
-
 		free_stuff();
-		if (ch == 27) break;
 	}
 
+	free(scores);
 	del_stuff();
+	free_stuff();
 	clear();
 	refresh();
     return 0;

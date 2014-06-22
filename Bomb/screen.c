@@ -259,6 +259,8 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	wattroff(hud_win, COLOR_PAIR(hudcol));
 	wattron (hud_win,COLOR_PAIR(hudcol));
 	mvwprintw(hud_win, 6, COLS / 2 - 2, "%d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
+	if (gen > 0) 
+-		wprintw(hud_win, "  Gen: %d / Fattest: %s, ate %d of pie.", gen, fittest, hp);
 	wattroff (hud_win, COLOR_PAIR(hudcol));
 	
 	i=0;

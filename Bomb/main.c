@@ -408,7 +408,7 @@ int main()
 						refresh();
 						do{
 							ch=wgetch(menu_win);
-						} while (ch!=10	&&	ch!=32);
+						} while (ch != 27);
 						wclear(menu_win);
 						wattron(menu_win,COLOR_PAIR(24));
 						for (i=0;i<900;i++) wprintw(menu_win," ");

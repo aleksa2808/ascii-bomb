@@ -9,14 +9,14 @@ char **screen;
 struct BombList *blist_front, *blist_rear;
 struct PlayerList *plist_front, *plist_rear;
 struct FireList *flist_front, *flist_rear;
-int time_end, iter_time, m, n, per, mode;
+int time_end, iter_time, m, n, per, mode, difficulty;
 WallOfDeath *w;
 
 // for lack of a better global // story mode stuff
 int lives, points, health, bombs, range, powers, exitx, exity, exit_spawn = 0;
 
 extern WINDOW *game_win;
-extern void bot_action(Player*);
+extern void bot_action(Player*, int);
 extern void mob_action(Player*);
 extern int sdon;
 
@@ -124,9 +124,20 @@ void spawn(int id, Player *player, int y, int x)
 	player->last_move = 0;
 	player->action = 0;
 	player->last_action = 0;
-	player->speed = 0.3 * TIME_SLICE;
+	switch (difficulty)
+	{
+	case 1:
+		player->speed = 0.3 * TIME_SLICE;
+		break;
+	case 2:
+		player->speed = 0.25 * TIME_SLICE;
+		break;
+	case 3:
+		player->speed = 0.2 * TIME_SLICE;
+		break;
+	}
 	
-	strcpy(player->gene, "000000000000000000000000000000000000000000000000000000000000");
+	strcpy(player->gene, "000000000000000000000000000000000000000000000000000000000000"); // CHROMO_LENGTH!!!
 	strcpy(player->code, "01234567");
 }
 void player_queue(Player *player)
@@ -297,6 +308,8 @@ void pause(bool *running)
 	pause_time = clock() - iter_time;
 	
 	time_end += pause_time;
+	w->wod_start += pause_time;
+	w->last_move += pause_time;
 	
 	p = plist_front;
 	while (p)
@@ -443,7 +456,7 @@ void move_logic(Player *player, int ydir, int xdir)
 		if (player->type == 0 && screen[y][x] >= POWER_START) power_time(player);
 	}
 }
-int do_action(Player *player)
+void do_action(Player *player)
 {
 	struct BombList *b;
 
@@ -498,7 +511,6 @@ int do_action(Player *player)
 			}
         }
     }
-	return 0;
 }
 void fire_queue(int y, int x)
 {
@@ -712,7 +724,7 @@ void player_action(int ch, int num_players, int num_bots)
 			
 		if (p->player->id > num_players && ((mode == 2 && p->player->id <= num_players + num_bots) || (mode == 1 && p->player->type == 0 && p->player->id > 4)) && can_move(p->player))
 		{
-			bot_action(p->player);
+			bot_action(p->player, difficulty);
 			if (p->player->action && p->player->action != 5) p->player->last_move = iter_time;
 		}
 
@@ -1156,7 +1168,7 @@ int campaign(void)
 	
 	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 	
-	mode = 1, m = 11, n = 15, per = 50;
+	mode = 1, m = 11, n = 15, per = 50, difficulty = 2;
 	lives = 5, bombs = 1, range = 1, powers = 0, health = 1, points = 0;
 
 	init_screen(m, n, 1);
@@ -1232,7 +1244,7 @@ int campaign(void)
 
 			if (level == 21)
 			{
-				points += 500;
+				points += 2000;
 				// HUZZAH! GAME COMPLETE!
 				break;
 			}
@@ -1331,6 +1343,7 @@ int battle(int num_players, int num_bots, int req_wins)
 	int *scores = (int*) calloc(num_players + num_bots, sizeof(int));
 
 	mode = 2;
+	difficulty = 2;
 	
 	if (num_players + num_bots > 4) m = 13, n = 17, per = 80;
 	else m = 11, n = 15, per = 60;
@@ -1369,7 +1382,7 @@ int battle(int num_players, int num_bots, int req_wins)
 				running = FALSE;
 				break;
 			case 10:
-				pause(&running);
+				if (num_players) pause(&running);
 			}
 
 			player_action(ch, num_players, num_bots);
@@ -1548,9 +1561,12 @@ int training_area(void)
 	w = NULL, blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 
 	mode = 2;
+	difficulty = 3;
 	
 	m = 13, n = 17, per = 80;
 	init_screen(m, n, arena);
+    update_hud(generation, "0", 0);
+
 
 	for (i = 0; i < POP_SIZE; i++) strcpy(population[i], random_bits());
 
@@ -1597,7 +1613,7 @@ int training_area(void)
 				break;
 			case 'r':
 				running = FALSE;
-				winner = 1;
+				winner = 0;
 			}
 
 			player_action(ch, 0, POP_SIZE);

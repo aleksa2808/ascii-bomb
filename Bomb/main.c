@@ -3,47 +3,17 @@
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define WIDTH 30
-#define HEIGHT 20 
-#define MAP_SPRITE_NUM 20
+#include "structs.h"
+#include "functions.h"
+
 
 int sdon;
 int demoon;
-
-typedef struct{
-	unsigned char ch[4][6];
-	short col1[4][6],col2[4][6];
-}	Sprite;
 Sprite sprPlayer[10];
-
-
-
-struct m_id {
-	int id;
-	char *nam;
-};
-
-struct m_list {
-	int num;
-	int ret;
-	struct m_id *men;
-	
-};
-
-
-typedef struct m_id smth;
-
-
 
 struct m_list choices[10];
 short menu_size;
 void print_menu(WINDOW*, int, struct m_list);
-
-extern int campaign(void);
-extern int battle(int, int, int);
-extern int training_area(void);
-void updConfigs();
-
 
 
 

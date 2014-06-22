@@ -1,44 +1,15 @@
 #include <curses.h>
 #include <stdlib.h>
 #include <math.h>
-
-#define BOMB_TIME 2
-
-#define CHROMO_LENGTH             60
-#define GENE_LENGTH               3
-
-typedef struct {
-	int id, type, x, y, health, bombs, bomb_range, action, last_action, immortal_end, last_move, speed;
-	bool immortal;
-	unsigned char powers;
-	char gene[CHROMO_LENGTH + 1], code[(CHROMO_LENGTH / GENE_LENGTH) + 1];
-} Player;
-typedef struct { 
-	Player *owner;
-	int x, y, range, end_time, xdir, ydir, last_move;
-} Bomb;
-typedef struct
-{
-	int wod_start, y, x, dir, inc, last_move;
-	bool alive;
-} WallOfDeath;
-typedef struct BombList {
-	Bomb *bomb;
-	struct BombList *prev, *next;
-};
-typedef struct PlayerList {
-	Player *player;
-	struct PlayerList *prev, *next;
-};
+#include "structs.h"
 
 extern char **screen;
 extern int m, n;
 extern struct PlayerList *plist_front;
 extern int iter_time;
 extern WallOfDeath *w;
-
 extern bool can_pass(Player*, int);
-extern struct BombList* get_bomb(int, int);
+
 
 Player *bot;
 

@@ -2,44 +2,22 @@
 #include <time.h>
 #include <stdlib.h>
 #include <Windows.h>
+#include "structs.h"
+#include "functions.h"
 WINDOW *game_win, *hud_win;
-#define MAP_SPRITE_NUM 20
-#define BOMB_TIME 2
+
 
 int fusecol=12;
 int background=2;
 int hudcol=0;
 int m,n;
-typedef struct{
-	unsigned char ch[4][6];
-	short col1[4][6],col2[4][6];
-}	Sprite;
+
 
 //gen_alg
-#define CHROMO_LENGTH             60
-#define GENE_LENGTH               3
 int gen, hp;
 char *fittest;
 
-typedef struct {
-	int id, type, x, y, health, bombs, bomb_range, action, last_action, immortal_end, last_move, speed;
-	bool immortal;
-	unsigned char powers;
-	char gene[CHROMO_LENGTH + 1], code[(CHROMO_LENGTH / GENE_LENGTH) + 1];
-} Player;
-typedef struct { 
-	Player *owner;
-	int x, y, range, end_time;
-} Bomb;
-typedef struct BombList {
-	Bomb *bomb;
-	struct BombList *prev, *next;
-};
-typedef struct PlayerList {
-	Player *player;
-	struct PlayerList *prev, *next;
-};
-extern Sprite sprPlayer[10];
+Sprite sprPlayer[10];
 Sprite sprMap[MAP_SPRITE_NUM],sprBomb[3];
 
 extern int time_end, iter_time;

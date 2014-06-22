@@ -14,12 +14,12 @@ WallOfDeath *w;
 
 // for lack of a better global // story mode stuff
 int lives, points, health, bombs, range, powers, exitx, exity, exit_spawn = 0;
-
+extern WINDOW *hud_win;
 extern WINDOW *game_win;
 extern void bot_action(Player*, int);
 extern void mob_action(Player*);
 extern int sdon;
-
+extern int transon;
 
 void boom(int y, int x, int range);
 
@@ -44,18 +44,31 @@ void create_map(int level)
     {
         screen[i][0] = STONE_WALL;
         screen[i][n - 1] = STONE_WALL;
+		if (transon){
+			draw(screen,NULL,NULL);
+			Sleep(20);
+		}
     }
     for (i = 0; i < n; i++)
     {
 		screen[0][i] = STONE_WALL;
 		screen[m - 1][i] = STONE_WALL;
+		if (transon){
+			draw(screen,NULL,NULL);
+			Sleep(20);
+		}
     }
        
     /* Blocks */
-    for (i = 2; i < m - 1; i += 2)
-		for (j = 2; j < n - 1; j += 2)
-			screen[i][j] = STONE_WALL;
-
+	if (level != -1)
+		for (i = 2; i < m - 1; i += 2)
+			for (j = 2; j < n - 1; j += 2){
+				screen[i][j] = STONE_WALL;
+				if (transon){
+					draw(screen,NULL,NULL);
+					Sleep(20);
+				}
+			}
     /* Destructibles */
 	if (!(mode == 1 && level % 5 == 0)) // if not boss level
 	{
@@ -70,6 +83,10 @@ void create_map(int level)
 			}
 			while (screen[my][mx] != EMPTY);
 			screen[my][mx] = WALL;
+			if (transon){
+				draw(screen,NULL,NULL);
+				Sleep(20);
+			}
 		}
 	}
 }
@@ -297,6 +314,10 @@ void pause(bool *running)
 
 	if (sdon) PlaySound(TEXT("sounds/pause.wav"), NULL, SND_ASYNC | SND_FILENAME);
 	nodelay(game_win, FALSE);
+	wattron(hud_win,COLOR_PAIR(15*16));
+	mvwprintw(hud_win,6,COLS/2-3,"PAUSE");
+	wattroff(hud_win,COLOR_PAIR(15*16));
+	wrefresh(hud_win);
 	while ((ch = wgetch(game_win)) != 10)
 		if (ch == 27) 
 		{
@@ -308,9 +329,12 @@ void pause(bool *running)
 	pause_time = clock() - iter_time;
 	
 	time_end += pause_time;
-	w->wod_start += pause_time;
-	w->last_move += pause_time;
-	
+	if (w)
+	{
+		w->wod_start += pause_time;
+		w->last_move += pause_time;
+	}
+
 	p = plist_front;
 	while (p)
 	{
@@ -426,8 +450,10 @@ bool can_pass(Player *player, int x)
 	switch (x)
 	{
 	case STONE_WALL:
-	case BOMB:
 		return FALSE;
+	case BOMB:
+		if (mode == 3) return TRUE;
+		else return FALSE;
 	case WALL:
 	case WALL_ON_FIRE:
 		if (player->powers & 0x10) return TRUE;
@@ -1334,7 +1360,7 @@ int campaign(void)
 	refresh();
     return 0;
 }
-int battle(int num_players, int num_bots, int req_wins)
+int battle(int num_players, int num_bots, int req_wins, int difficulty)
 {
     /* ~Initialization~ */
     int ch, winner, arena = rand() % 2 + 1;
@@ -1720,6 +1746,172 @@ int training_area(void)
 	free(scores);
 	del_stuff();
 	free_stuff();
+	clear();
+	refresh();
+    return 0;
+}
+
+int fun(void)
+{
+	/* ~Initialization~ */
+    int i, j, ch, arena = rand() % 2 + 1, last_wave = 0, speed = 250;
+	bool running;
+
+	struct BombList *b, *bb;
+
+	FILE *input = fopen("data/fun.txt", "r");
+
+	char mat[7][90];
+
+	for (i = 0; i < 7; i++)
+	{
+		for (j = 0; j < 90; j++)
+		{
+			mat[i][j] = fgetc(input);
+		}
+		fgetc(input);
+	}
+
+	fclose(input);
+
+	mode = 3;
+	
+	m = 9, n = 15, per = 0;
+	init_screen(m, n, arena);
+	j = 0;
+
+	running = TRUE;
+		
+	w = NULL, blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
+	
+	create_map(-1);
+	init_players(1, 0);
+	plist_front->player->y = 4;
+
+	draw(screen, blist_front, plist_front);
+
+	/* ~The Game Loop!~ */
+	while (running)
+	{
+		iter_time = clock();
+		
+		ch = wgetch(game_win);
+
+		/* Function keys */
+		switch (ch)
+		{
+		case 27:
+			running = FALSE;
+			break;
+		case 10:
+			pause(&running);
+		}
+
+		plist_front->player->action = 0;
+		switch (ch)
+		{
+		case KEY_RIGHT:
+			plist_front->player->action = 1;
+			break;
+		case KEY_DOWN:
+			plist_front->player->action = 2;
+			break;
+		case KEY_LEFT:
+			plist_front->player->action = 3;
+			break;
+		case KEY_UP:
+			plist_front->player->action = 4;
+			break;
+		}
+
+		do_action(plist_front->player);
+
+		if (last_wave + speed <= iter_time)
+		{
+			for (i = 0; i < 7; i++)
+			{
+				if (mat[i][j] == '1')
+				{
+					screen[i + 1][13] = BOMB;
+
+					/* Enqueue bomb */
+					b = (struct BombList*) malloc(sizeof(struct BombList));
+					b->bomb = (Bomb*) malloc(sizeof(Bomb));
+					b->bomb->owner = NULL;
+					b->bomb->y = i + 1;
+					b->bomb->x = 13;
+					b->bomb->xdir = -1;
+					b->bomb->ydir = 0;
+					b->bomb->last_move = clock();
+					b->next = NULL;
+					if (blist_rear == NULL) 
+					{
+						blist_front = b;
+						b->prev = NULL;
+					}
+					else 
+					{
+						blist_rear->next = b;
+						b->prev = blist_rear;
+					}
+					blist_rear = b;
+				}
+			}
+		
+			if (++j == 90)
+			{
+				j = 0;
+				speed -= 50;
+				if (speed == 0) 
+				{
+					running = FALSE;
+					if (sdon) PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
+				}
+			}
+
+			last_wave = iter_time;
+		}
+
+		b = blist_front;
+		while (b != NULL)	
+		{
+			if ((b->bomb->ydir || b->bomb->xdir) && b->bomb->last_move + speed <= iter_time)
+			{
+				switch (screen[b->bomb->y + b->bomb->ydir][b->bomb->x + b->bomb->xdir])
+				{
+				case EMPTY:
+					screen[b->bomb->y][b->bomb->x] = EMPTY;
+					b->bomb->y += b->bomb->ydir;
+					b->bomb->x += b->bomb->xdir;
+					screen[b->bomb->y][b->bomb->x] = BOMB;
+					b->bomb->last_move = iter_time;
+					b = b->next;
+					break;
+				case STONE_WALL:
+					screen[b->bomb->y][b->bomb->x] = EMPTY;
+					bb = b->next;
+					recycle_bomb(b);
+					b = bb;
+					break;
+				}
+			}
+			else b = b->next;
+		}
+
+		/* Game over? */
+		if (screen[plist_front->player->y][plist_front->player->x] == BOMB) running = FALSE;
+		
+		draw(screen, blist_front, plist_front);
+
+		if (clock() - iter_time <= 33) Sleep(33 - (clock() - iter_time)); // 30 FPS
+	}
+
+	/* Game over */
+	// transition();
+	free_stuff();
+
+	del_stuff();
+
 	clear();
 	refresh();
     return 0;

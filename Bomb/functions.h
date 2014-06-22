@@ -17,6 +17,7 @@ void boom(int y, int x, int range);
 struct BombList* get_bomb(int, int);
 int time_end, iter_time;
 int campaign(void);
-int battle(int, int, int);
+int battle(int, int, int, int);
 int training_area(void);
 void updConfigs();
+int fun(void);

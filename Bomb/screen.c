@@ -257,11 +257,11 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	wattron(hud_win,COLOR_PAIR(hudcol));
     for (i=0; i<COLS*12; i++) wprintw(hud_win, " ");
 	wattroff(hud_win, COLOR_PAIR(hudcol));
-	wattron (hud_win,COLOR_PAIR(hudcol));
-	mvwprintw(hud_win, 6, COLS / 2 - 2, "%d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
-	if (gen > 0) 
--		wprintw(hud_win, "  Gen: %d / Fattest: %s, ate %d of pie.", gen, fittest, hp);
-	wattroff (hud_win, COLOR_PAIR(hudcol));
+	wattron (hud_win,COLOR_PAIR(15*16));
+	if (mode != 3) mvwprintw(hud_win, 6, COLS / 2 - 3, "%02d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
+	if (gen > 0) wprintw(hud_win, "  Gen: %d / Fattest: %s, ate %d of pie.", gen, fittest, hp);
+
+	wattroff (hud_win, COLOR_PAIR(15*16));
 	
 	i=0;
 
@@ -369,9 +369,5 @@ void scoreboard(int *scores, int num){
 		
 	}
 	refresh();
-	//k=0;
-	//while (k!=32){
-	//	k = getch();
-	//}
 	Sleep(1500);
 }

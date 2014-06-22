@@ -647,7 +647,7 @@ void boom(int y, int x, int range)
 {
 	int i;
 	
-	if (sdon) PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
+	if (sdon && mode != 3) PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
 
 	for (i = 0; i <= range; i++)
 	{
@@ -1755,7 +1755,7 @@ int training_area(void)
 int fun(void)
 {
 	/* ~Initialization~ */
-    int i, j, ch, arena = rand() % 2 + 1, last_wave = 0, speed = 250;
+    int i, j, ch, arena = rand() % 3 + 1, last_wave = 0, speed = 250;
 	bool running;
 
 	struct BombList *b, *bb;
@@ -1825,7 +1825,7 @@ int fun(void)
 			break;
 		}
 
-		do_action(plist_front->player);
+		if (plist_front->player->action) do_action(plist_front->player);
 
 		if (last_wave + speed <= iter_time)
 		{
@@ -1839,6 +1839,7 @@ int fun(void)
 					b = (struct BombList*) malloc(sizeof(struct BombList));
 					b->bomb = (Bomb*) malloc(sizeof(Bomb));
 					b->bomb->owner = NULL;
+					b->bomb->range = 3;
 					b->bomb->y = i + 1;
 					b->bomb->x = 13;
 					b->bomb->xdir = -1;
@@ -1900,7 +1901,23 @@ int fun(void)
 		}
 
 		/* Game over? */
-		if (screen[plist_front->player->y][plist_front->player->x] == BOMB) running = FALSE;
+		if (screen[plist_front->player->y][plist_front->player->x] == BOMB) 
+		{
+			PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
+			
+			b = blist_front;
+			while (b != NULL)	
+			{
+				screen[b->bomb->y][b->bomb->x] = EMPTY;
+				boom(b->bomb->y, b->bomb->x, b->bomb->range);
+				bb = b->next;
+				recycle_bomb(b);
+				b = bb;
+			}
+			draw(screen, blist_front, plist_front);
+			Sleep(500);
+			running = FALSE;
+		}
 		
 		draw(screen, blist_front, plist_front);
 

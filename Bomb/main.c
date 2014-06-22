@@ -9,11 +9,12 @@
 
 int sdon;
 int demoon;
+int transon;
 Sprite sprPlayer[10];
 
 struct m_list choices[10];
 short menu_size;
-void print_menu(WINDOW*, int, struct m_list);
+void print_menu(WINDOW*, int, struct m_list, int tr);
 
 
 
@@ -25,7 +26,7 @@ int main()
 	int c,c2;
 	int i,j,k,l,tint;
 	int menu_start;
-	char *splash = "SPLASH", *screen = "SCREEN!", dumpch, tempstr[50],t1,t2;
+	char *splash = "Error 404:", *screen = "Name Not Found", dumpch, tempstr[50],t1,t2;
 	int act_menu, ret_menu;
 	int ptr;
 	int len;
@@ -34,6 +35,7 @@ int main()
 	int wns;
 	int rep;
 	int tmp;
+	int dif;
 	struct ScoreList *slist = NULL, *s = NULL, *t, *p = NULL;
 	int i1, j1, chksum, sum, k1;
 	char ch, *pts;
@@ -42,12 +44,13 @@ int main()
 	//configs
 	dat = fopen ("data/configs.txt","r");
 	if (dat!=NULL) {
-		fscanf(dat,"%d %d",&sdon,&demoon);
+		fscanf(dat,"%d %d %d",&sdon,&demoon, &transon);
 		fclose(dat);
 	}
 	else{
 		sdon = 1;
 		demoon = 1;
+		transon = 1;
 		updConfigs();
 	}
 	//menu forming
@@ -118,11 +121,11 @@ int main()
 	for (i = 0; i < COLS / 2 - 4; i++){
 		clear();
 		mvprintw(LINES / 2, i, "%s", splash);
-		mvprintw(LINES / 2 + 1, COLS - 7 - i, "%s", screen);
+		mvprintw(LINES / 2 + 1, COLS - strlen(screen) - i, "%s", screen);
 		refresh();
 		Sleep(15);
 	}
-	Sleep(200);
+	Sleep(700);
 	
 	flushinp();
 	clear();
@@ -145,11 +148,11 @@ int main()
 		if ( demoon &&(menu_start + 15 * CLOCKS_PER_SEC <= clock())) {
 			clear();
 			refresh();
-			battle(0, 8, 1);
+			battle(0, 8, 1, 2);
 			resize_term(50,100);
 			menu_start = clock();
 		}
-		print_menu(menu_win, ptr, choices[act_menu]); 
+		print_menu(menu_win, ptr, choices[act_menu],1); 
 		
 		c= wgetch(menu_win);
 		switch (c){
@@ -194,14 +197,14 @@ int main()
 						plr=1;
 						bts=3;
 						wns=3;
-
+						dif=1;
 						while (rep==1){
 							wclear(num_win);
 							
 
 							wattron(num_win,COLOR_PAIR(24));
 							for (i=0;i<200;i++) wprintw(num_win," ");
-							mvwprintw(num_win,2,2,"Izaberite broj igraca:");
+							mvwprintw(num_win,2,2,"AMOUNT OF PLAYERS:");
 							mvwprintw(num_win, 3,2,"%c %d %c", 0xAE, plr, 0xAF);
 							wattroff(num_win,COLOR_PAIR(24));
 
@@ -226,7 +229,7 @@ int main()
 									rep=-1;
 									break;
 								}
-						Sleep(50);
+						Sleep(20);
 						}
 						if (rep==-1) break; 
 						else rep=1;
@@ -235,7 +238,7 @@ int main()
 							wclear(num_win);
 							wattron(num_win,COLOR_PAIR(24));
 							for (i=0;i<200;i++) wprintw(num_win," ");
-							mvwprintw(num_win,2,2,"Izaberite broj botova:");
+							mvwprintw(num_win,2,2,"AMOUNT OF BOTS:");
 							mvwprintw(num_win, 3,2,"%c %d %c", 0xAE, bts, 0xAF);
 							wattroff(num_win,COLOR_PAIR(24));
 
@@ -260,7 +263,7 @@ int main()
 									rep=-1;
 									break;
 								}
-						Sleep(50);
+						Sleep(20);
 						}
 						if (rep==-1) break; 
 						else rep=1;
@@ -270,7 +273,7 @@ int main()
 
 							wattron(num_win,COLOR_PAIR(24));
 							for (i=0;i<200;i++) wprintw(num_win," ");
-							mvwprintw(num_win,2,2,"Izaberite broj pobeda:");
+							mvwprintw(num_win,2,2,"AMOUNT OF WINS:");
 							mvwprintw(num_win, 3,2,"%c %d %c", 0xAE, wns, 0xAF);
 							wattroff(num_win,COLOR_PAIR(24));
 
@@ -295,11 +298,47 @@ int main()
 									rep=-1;
 									break;
 								}
-						Sleep(50);
+						Sleep(20);
 						}
+						if (rep==-1) break; 
+						else rep=1;
+
+						while (rep==1){
+							wclear(num_win);
+
+							wattron(num_win,COLOR_PAIR(24));
+							for (i=0;i<200;i++) wprintw(num_win," ");
+							mvwprintw(num_win,2,2,"DIFFICULTY:");
+							mvwprintw(num_win, 3,2,"%c %d %c", 0xAE, dif, 0xAF);
+							wattroff(num_win,COLOR_PAIR(24));
+
+							wattron(num_win,COLOR_PAIR(129));
+							box(num_win,0,0);
+							wattroff(num_win,COLOR_PAIR(129));
+
+							refresh();
+							wrefresh(num_win);
+							c2 = wgetch(num_win);
+							switch(c2){
+								case 32: case 10:
+									rep=0;
+									break;
+								case KEY_RIGHT:
+									if (dif<3) dif++;
+									break;
+								case KEY_LEFT:
+									if (dif>1) dif--;
+									break;
+								case 27:
+									rep=-1;
+									break;
+								}
+						Sleep(20);
+						}
+
 						if (rep==-1) break;
 
-						battle(plr, bts, wns);
+						battle(plr, bts, wns, dif);
 						resize_term(50,100);
 						menu_start = clock();
 						break;
@@ -325,6 +364,11 @@ int main()
 						wclear(menu_win);
 						updConfigs();
 						break;
+					case 42:
+						transon = !transon;
+						wclear(menu_win);
+						updConfigs();
+						break;
 					case 12:
 						act_menu=3;
 						ptr=0;
@@ -347,8 +391,6 @@ int main()
 							if (sum == chksum)
 							{
 								fseek(dat, 0, SEEK_SET);
-
-								// citanje liste
 								for (i1 = 0; i1 < 10; i1++)
 								{
 									t = (struct ScoreList*) malloc(sizeof(struct ScoreList));
@@ -387,37 +429,40 @@ int main()
 							}
 							fclose(dat);
 						}
-						t=slist;
-						wclear(menu_win);
-						wattron(menu_win,COLOR_PAIR(24));
-						for (i=0;i<900;i++) wprintw(menu_win," ");
-						wattroff(menu_win,COLOR_PAIR(24));
-
-						
-						wattron(menu_win,COLOR_PAIR(129));
-						box(menu_win,0,0);
-						wattroff(menu_win,COLOR_PAIR(129));
-
-						wattron(menu_win,COLOR_PAIR(24));
-						mvwprintw(menu_win, 1, 14,"HIGH-SCORES");
-						for (i=1; i<=10; i++){
-							mvwprintw(menu_win, 2+i,1, "%d.\t%05d - %s",i,t?t->points:0, t?t->name:" ");
-							t=t->next;
-						}
-						wattroff(menu_win,COLOR_PAIR(24));
-						refresh();
 						do{
 							ch=wgetch(menu_win);
+							t=slist;
+							print_menu(menu_win, ptr, choices[act_menu],0); 
+							wclear(menu_win);
+							wattron(menu_win,COLOR_PAIR(24));
+							for (i=0;i<900;i++) wprintw(menu_win," ");
+							wattroff(menu_win,COLOR_PAIR(24));
+
+						
+							wattron(menu_win,COLOR_PAIR(129));
+							box(menu_win,0,0);
+							wattroff(menu_win,COLOR_PAIR(129));
+
+							wattron(menu_win,COLOR_PAIR(24));
+							mvwprintw(menu_win, 1, 14,"HIGH-SCORES");
+							for (i=1; i<=10; i++){
+								mvwprintw(menu_win, 2+i,1, "%2d. %5d - %s",i,t?t->points:0, t?t->name:" ");
+								t=t->next;
+							}
+							wattroff(menu_win,COLOR_PAIR(24));
+							refresh();
+							Sleep(20);
 						} while (ch!=10	&&	ch!=32);
+
 						wclear(menu_win);
 						wattron(menu_win,COLOR_PAIR(24));
 						for (i=0;i<900;i++) wprintw(menu_win," ");
 						wattroff(menu_win,COLOR_PAIR(24));
 
-						
 						wattron(menu_win,COLOR_PAIR(129));
 						box(menu_win,0,0);
 						wattroff(menu_win,COLOR_PAIR(129));
+
 						break;
 				}
 				break;
@@ -431,33 +476,79 @@ int main()
 		}
 		Sleep(20);
 	}
+
+	for (i=0; i<menu_size; i++){
+		for (j=0; j<choices[i].num; j++){
+			free (choices[i].men[j].nam);
+		}
+		free (choices[i].men);
+
+	}
 	
 	delwin(menu_win);
+	delwin(num_win);
+
 	clrtoeol();
 	refresh();
 	endwin();
 	return 0;
 }
 
-void print_menu(WINDOW *menu_win, int ptr, struct m_list m_choices){
+void print_menu(WINDOW *menu_win, int ptr, struct m_list m_choices, int tr){
 	int x,y,i, xt = 16, yt = 5;
+	static int k=0;
 	x=2; y=2;
-
+	
 	//attron(COLOR_PAIR(51));
 	//for (i=0;i<COLS * LINES;i++) printw(" ");
 	//attroff(COLOR_PAIR(51));
-
+	k++;
+	if (k>5000) k = 0;
+	attron(COLOR_PAIR(240));
 	mvprintw(yt + 1, xt, "  ____   ____  __  __ ____  ______ _____  __  __          _   _ ");
 	mvprintw(yt + 2, xt, " |  _ \\ / __ \\|  \\/  |  _ \\|  ____|  __ \\|  \\/  |   /\\   | \\ | |");
 	mvprintw(yt + 3, xt, " | |_) | |  | | \\  / | |_) | |__  | |__) | \\  / |  /  \\  |  \\| |");
 	mvprintw(yt + 4, xt, " |  _ <| |  | | |\\/| |  _ <|  __| |  _  /| |\\/| | / /\\ \\ | . ` |");
 	mvprintw(yt + 5, xt, " | |_) | |__| | |  | | |_) | |____| | \\ \\| |  | |/ ____ \\| |\\  |");
 	mvprintw(yt + 6, xt, " |____/ \\____/|_|  |_|____/|______|_|  \\_\\_|  |_/_/    \\_\\_| \\_|");
+	attroff(COLOR_PAIR(240));
+
+	attron (COLOR_PAIR(224));
+	mvprintw(10,4,"*");
+	mvprintw(15,2,"%c", k%200<100?'*':0xF9);
+	
+	mvprintw(40,21,"%c", k%100<50?0xF9:'*');
+	mvprintw(30,9,"*");
+	mvprintw(43,40,"%c", k%222<111?'*':'+');
+	mvprintw(46, 70, "*");
+	mvprintw(44,5,"*");
+	mvprintw(30,86,"%c",k%700<350?'*':0xF9);
+	mvprintw(5,91, "%c",k%312<156?'*':'+');
+	mvprintw(13, 78,"%c", k%160<80?' ':'*');
+	mvprintw(17,72,"*");
+	mvprintw(19,92,"%c",k%123<62?0xF9:'*');
+	attroff (COLOR_PAIR(224));
+
+	attron (COLOR_PAIR(8*16));
+	mvprintw(39,84,"\\__/");
+	mvprintw(40, 85,"%c%c",0xDB,0xDB);
+	mvprintw(41,83,"__%c%c__",0xDB,0xDB);
+	mvprintw(43,84,"=%c%c=",0xDB,0xDB);
+	mvprintw(44,85,"||");
+	mvprintw(42,85,"||");
+	attroff(COLOR_PAIR(8*16));
+	attron(COLOR_PAIR(k%348/2<348/4?4*16:12*16));
+	mvprintw(38,83,".    .");
+	mvprintw(41,82,".");
+	mvprintw(41,89,".");
+	attroff(COLOR_PAIR(k%348/2<348/4?4*16:12*16));
+
+
 
 	wattron(menu_win,COLOR_PAIR(24));
 	for (i=0;i<900;i++) wprintw(menu_win," ");
 	wattroff(menu_win,COLOR_PAIR(24));
-
+	
 	wattron(menu_win,COLOR_PAIR(129));
 	box(menu_win,0,0);
 	wattroff(menu_win,COLOR_PAIR(129));
@@ -471,6 +562,9 @@ void print_menu(WINDOW *menu_win, int ptr, struct m_list m_choices){
 			case 41:
 				mvwprintw(menu_win, y+2*i, x, "%c %s\t-\t%s",(i==ptr?0xAF:' '), m_choices.men[i].nam, demoon==1?"ON":"OFF");
 				break;
+			case 42:
+				mvwprintw(menu_win, y+2*i, x, "%c %s\t-\t%s", (i==ptr?0xAF:' '), m_choices.men[i].nam, transon==1?"ON":"OFF");
+				break;
 			default:
 				mvwprintw(menu_win, y+2*i, x, "%c %s",(i==ptr?0xAF:' '), m_choices.men[i].nam);
 				break;
@@ -479,13 +573,15 @@ void print_menu(WINDOW *menu_win, int ptr, struct m_list m_choices){
 	}
 	wattroff(menu_win,COLOR_PAIR(24));
 	i=i;
+	if (tr){
 	wrefresh(menu_win);
 	refresh();
+	}
 }
 
 void updConfigs(){
 	FILE *dat;
 	dat = fopen ("data/configs.txt","w");
-	fprintf(dat,"%d %d", sdon, demoon);
+	fprintf(dat,"%d %d %d", sdon, demoon, transon);
 	fclose(dat);
 }

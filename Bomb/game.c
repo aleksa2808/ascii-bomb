@@ -14,12 +14,12 @@ WallOfDeath *w;
 
 // for lack of a better global // story mode stuff
 int lives, points, health, bombs, range, powers, exitx, exity, exit_spawn = 0;
-
+extern WINDOW *hud_win;
 extern WINDOW *game_win;
 extern void bot_action(Player*);
 extern void mob_action(Player*);
 extern int sdon;
-
+extern int transon;
 
 void boom(int y, int x, int range);
 
@@ -44,18 +44,30 @@ void create_map(int level)
     {
         screen[i][0] = STONE_WALL;
         screen[i][n - 1] = STONE_WALL;
+		if (transon){
+			draw(screen,NULL,NULL);
+			Sleep(20);
+		}
     }
     for (i = 0; i < n; i++)
     {
 		screen[0][i] = STONE_WALL;
 		screen[m - 1][i] = STONE_WALL;
+		if (transon){
+			draw(screen,NULL,NULL);
+			Sleep(20);
+		}
     }
        
     /* Blocks */
     for (i = 2; i < m - 1; i += 2)
-		for (j = 2; j < n - 1; j += 2)
+		for (j = 2; j < n - 1; j += 2){
 			screen[i][j] = STONE_WALL;
-
+			if (transon){
+				draw(screen,NULL,NULL);
+				Sleep(20);
+			}
+		}
     /* Destructibles */
 	if (!(mode == 1 && level % 5 == 0)) // if not boss level
 	{
@@ -70,6 +82,10 @@ void create_map(int level)
 			}
 			while (screen[my][mx] != EMPTY);
 			screen[my][mx] = WALL;
+			if (transon){
+				draw(screen,NULL,NULL);
+				Sleep(20);
+			}
 		}
 	}
 }
@@ -286,6 +302,10 @@ void pause(bool *running)
 
 	if (sdon) PlaySound(TEXT("sounds/pause.wav"), NULL, SND_ASYNC | SND_FILENAME);
 	nodelay(game_win, FALSE);
+	wattron(hud_win,COLOR_PAIR(15*16));
+	mvwprintw(hud_win,6,COLS/2-3,"PAUSE");
+	wattroff(hud_win,COLOR_PAIR(15*16));
+	wrefresh(hud_win);
 	while ((ch = wgetch(game_win)) != 10)
 		if (ch == 27) 
 		{
@@ -1322,7 +1342,7 @@ int campaign(void)
 	refresh();
     return 0;
 }
-int battle(int num_players, int num_bots, int req_wins)
+int battle(int num_players, int num_bots, int req_wins, int difficulty)
 {
     /* ~Initialization~ */
     int ch, winner, arena = rand() % 2 + 1;

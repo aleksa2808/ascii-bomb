@@ -303,7 +303,7 @@ int main()
 						if (rep==-1) break; 
 						else rep=1;
 
-						while (rep==1){
+						while (bts && rep==1){
 							wclear(num_win);
 
 							wattron(num_win,COLOR_PAIR(24));
@@ -374,6 +374,115 @@ int main()
 						ptr=0;
 						wclear(menu_win);
 						break;
+					case 50:
+						do {
+							ch=wgetch(menu_win);
+							print_menu(menu_win,ptr,choices[act_menu],0);
+							wclear(menu_win);
+							wattron(menu_win,COLOR_PAIR(24));
+							for (i=0;i<900;i++) wprintw(menu_win," ");
+							wattroff(menu_win,COLOR_PAIR(24));
+
+							wattron(menu_win,COLOR_PAIR(129));
+							box(menu_win,0,0);
+							wattroff(menu_win,COLOR_PAIR(129));
+							
+
+							wattron(menu_win,COLOR_PAIR(24));
+							mvwprintw(menu_win,2,2,"You are a penguin. With a top hat.");
+							mvwprintw(menu_win,3,2,"You also have bombs.");
+							mvwprintw(menu_win,4,2,"You also have enemies.");
+							mvwprintw(menu_win,5,2,"Some of them also have bombs.");
+							mvwprintw(menu_win,6,2,"Bombs can kill enemies.");
+							mvwprintw(menu_win,7,2,"So, try to kill your enemies.");
+							mvwprintw(menu_win,9,2,"Made by");
+							mvwprintw(menu_win,10,2,"\t\tAleksa Pavlovic");
+							mvwprintw(menu_win,11,2,"\t\tNikola Vaic");
+							mvwprintw(menu_win,12,2,"\t\tDusan Mrvaljevic");
+							wattroff(menu_win,COLOR_PAIR(24));
+
+							wattron(menu_win,COLOR_PAIR(129));
+							mvwprintw(menu_win,17,20-4,"CONTINUE");
+							wattroff(menu_win,COLOR_PAIR(129));
+							refresh();
+							Sleep(20);
+						} while (ch!=32 && ch!=27 && ch!=10);	
+						wclear(menu_win);
+						wattron(menu_win,COLOR_PAIR(24));
+						for (i=0;i<900;i++) wprintw(menu_win," ");
+						wattroff(menu_win,COLOR_PAIR(24));
+
+						break;
+					case 51:
+						do {
+							ch=wgetch(menu_win);
+							print_menu(menu_win,ptr,choices[act_menu],0);
+							wclear(menu_win);
+							wattron(menu_win,COLOR_PAIR(24));
+							for (i=0;i<900;i++) wprintw(menu_win," ");
+							wattroff(menu_win,COLOR_PAIR(24));
+
+							wattron(menu_win,COLOR_PAIR(129));
+							box(menu_win,0,0);
+							wattroff(menu_win,COLOR_PAIR(129));
+							
+
+							wattron(menu_win,COLOR_PAIR(24));
+							mvwprintw(menu_win,2,2,"Arrow Keys\t- P1 movement");
+							mvwprintw(menu_win,3,2,"Space Bar\t- P1 bomb set");
+							mvwprintw(menu_win,4,2,"WASD Keys\t- P2 movement");
+							mvwprintw(menu_win,5,2,"G Key\t\t- P2 bomb set");
+							mvwprintw(menu_win,6,2,"Enter Key\t- Pause");
+							mvwprintw(menu_win,7,2,"ESC Key\t- Back");
+							wattroff(menu_win,COLOR_PAIR(24));
+
+							wattron(menu_win,COLOR_PAIR(129));
+							mvwprintw(menu_win,17,20-4,"CONTINUE");
+							wattroff(menu_win,COLOR_PAIR(129));
+							refresh();
+							Sleep(20);
+						} while (ch!=32 && ch!=27 && ch!=10);	
+						wclear(menu_win);
+						wattron(menu_win,COLOR_PAIR(24));
+						for (i=0;i<900;i++) wprintw(menu_win," ");
+						wattroff(menu_win,COLOR_PAIR(24));
+
+						break;
+					case 52:
+						do {
+							ch=wgetch(menu_win);
+							print_menu(menu_win,ptr,choices[act_menu],0);
+							wclear(menu_win);
+							wattron(menu_win,COLOR_PAIR(24));
+							for (i=0;i<900;i++) wprintw(menu_win," ");
+							wattroff(menu_win,COLOR_PAIR(24));
+
+							wattron(menu_win,COLOR_PAIR(129));
+							box(menu_win,0,0);
+							wattroff(menu_win,COLOR_PAIR(129));
+							
+
+							wattron(menu_win,COLOR_PAIR(24));
+							mvwprintw(menu_win,2,2,"LIFE UP\t- H+");
+							mvwprintw(menu_win,3,2,"RANGE UP\t- R+");
+							mvwprintw(menu_win,4,2,"PUSHING\t- Boot");
+							mvwprintw(menu_win,5,2,"WALL CLIMB\t- Ladders");
+							mvwprintw(menu_win,6,2,"INVINCIBILITY\t- Top Hat");
+							wattroff(menu_win,COLOR_PAIR(24));
+
+							wattron(menu_win,COLOR_PAIR(129));
+							mvwprintw(menu_win,17,20-4,"CONTINUE");
+							wattroff(menu_win,COLOR_PAIR(129));
+							refresh();
+							Sleep(20);
+						} while (ch!=32 && ch!=27 && ch!=10);	
+						wclear(menu_win);
+						wattron(menu_win,COLOR_PAIR(24));
+						for (i=0;i<900;i++) wprintw(menu_win," ");
+						wattroff(menu_win,COLOR_PAIR(24));
+
+						break;
+					
 					case 30:
 						dat = fopen("data/highscores.txt", "r");
 						if (dat)
@@ -447,12 +556,15 @@ int main()
 							mvwprintw(menu_win, 1, 14,"HIGH-SCORES");
 							for (i=1; i<=10; i++){
 								mvwprintw(menu_win, 2+i,1, "%2d. %5d - %s",i,t?t->points:0, t?t->name:" ");
-								t=t->next;
+								if (t) t=t->next;
 							}
+							wattron(menu_win,COLOR_PAIR(129));
+							mvwprintw(menu_win,17,20-4,"CONTINUE");
+							wattroff(menu_win,COLOR_PAIR(129));
 							wattroff(menu_win,COLOR_PAIR(24));
 							refresh();
 							Sleep(20);
-						} while (ch!=10	&&	ch!=32);
+						} while (ch!=10	&&	ch!=32 && ch!=27);
 
 						wclear(menu_win);
 						wattron(menu_win,COLOR_PAIR(24));

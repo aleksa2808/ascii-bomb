@@ -54,6 +54,9 @@ void init_screen(int mm, int nn, int arena_id)
 		case 2:
 			dat = fopen("data/mapsprites2.txt","r");
 			break;
+		case 3:
+			dat = fopen("data/mapsprites3.txt","r");
+			break;
 	}
 
 	i = fscanf(dat, "%d %d %d\n", &background, &fusecol, &hudcol);
@@ -298,7 +301,7 @@ void del_stuff()
 	delwin(hud_win);
 }
 
-void scoreboard(int *scores, int num){
+void scoreboard(int *scores, int num, int winner){
 	int i,j,k;
 	short col1, col2;
 	static int playercolor[10]= {15, 14, 13, 12, 11, 10, 9, 2};
@@ -362,10 +365,18 @@ void scoreboard(int *scores, int num){
 			mvprintw(i*6+5, 15+j*9, " %c%c%c ",0xDF, 0xDB,0xDF);
 			mvprintw(i*6+6, 15+j*9, " %c%c%c ",0xDC,0xDB,0xDC);
 			attroff (COLOR_PAIR(224));
+			if (winner-1 == i && j==scores[i]-1) {
+				attron(COLOR_PAIR(15*16));
+				mvprintw(i*6+3, 15+j*9-2,"*");
+				mvprintw(i*6+4, 15+j*9+6,"*");
+				mvprintw(i*6+5, 15+j*9-1,"*");
+				attroff(COLOR_PAIR(15*16));
+			}
 		}
 
 		
 	}
 	refresh();
 	Sleep(1500);
+	flushinp();
 }

@@ -12,7 +12,7 @@
 
 #define MAP_SPRITE_NUM 20
 
-#define WIDTH 30
+#define WIDTH 40
 #define HEIGHT 20 
 
 #define EMPTY 0

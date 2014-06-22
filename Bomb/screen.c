@@ -12,6 +12,8 @@ int background=2;
 int hudcol=0;
 int m,n;
 
+extern int mode;
+extern int points, lives;
 
 //gen_alg
 int gen, hp;
@@ -31,15 +33,15 @@ void init_screen(int mm, int nn, int arena_id)
 
     m = mm;
     n = nn;
-    resize_term(10 + m * 4,n * 6);
+    resize_term(7 + m * 4,n * 6);
 
 	gen = 0;
 
-    game_win = newwin(m * 4, n * 6, 10, 0);
+    game_win = newwin(m * 4, n * 6, 7, 0);
     keypad(game_win, TRUE);
     nodelay(game_win, TRUE);
         
-    hud_win = newwin(10, COLS, 0, 0);
+    hud_win = newwin(7, COLS, 0, 0);
     box(hud_win, 0, 0);
 	wrefresh(hud_win);
 
@@ -197,11 +199,11 @@ void draw_hudp(Sprite spr, int ID){
 
 	for (i=12*(ID)-7;i < 12*(ID) +1 ;i++){
 		wattron(hud_win,COLOR_PAIR(128+hudcol));
-		mvwprintw(hud_win, 3, i, "%c", 0xDC);
-		mvwprintw(hud_win,8,i,"%c", 0xDF);
+		mvwprintw(hud_win, 0, i, "%c", 0xDC);
+		mvwprintw(hud_win,5,i,"%c", 0xDF);
 		wattroff(hud_win, COLOR_PAIR(128+hudcol));
 	}
-	for (i=4;i<8;i++){
+	for (i=1;i<5;i++){
 		wattron(hud_win,COLOR_PAIR(128+hudcol));
 		mvwprintw(hud_win, i,12*(ID)-7, "%c",0xDB);
 		mvwprintw(hud_win,i,12*(ID),"%c",0xDB);
@@ -223,7 +225,7 @@ void draw_hudp(Sprite spr, int ID){
 					
 
 					wattron(hud_win,COLOR_PAIR(col1*16+col2));
-					mvwprintw(hud_win, i+4, j+12*(ID)-6,"%c",(col1==0&&col2==0)?' ':spr.ch[i][ j ]);
+					mvwprintw(hud_win, i+1, j+12*(ID)-6,"%c",(col1==0&&col2==0)?' ':spr.ch[i][ j ]);
 					wattroff(hud_win,COLOR_PAIR(col1*16+col2));
 				}
 }
@@ -254,15 +256,18 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 
 	wattron(hud_win,COLOR_PAIR(hudcol));
     for (i=0; i<COLS*12; i++) wprintw(hud_win, " ");
-	box(hud_win, 0,0);
 	wattroff(hud_win, COLOR_PAIR(hudcol));
 	wattron (hud_win,COLOR_PAIR(hudcol));
-	mvwprintw(hud_win, 2, COLS / 2 - 2, "%d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
-	if (gen > 0) 
-		wprintw(hud_win, "  Gen: %d / Fattest: %s, ate %d of pie.", gen, fittest, hp);
+	mvwprintw(hud_win, 6, COLS / 2 - 2, "%d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
 	wattroff (hud_win, COLOR_PAIR(hudcol));
 	
 	i=0;
+
+	if (mode ==1){
+		wattron(hud_win,COLOR_PAIR(hudcol));
+		mvwprintw(hud_win, 6, 6, "Lives:%d\tPoints:%d",lives, points);
+		wattroff(hud_win,COLOR_PAIR(hudcol));
+	}
 	while (p){
 		if (p->player->immortal == TRUE && k % 20 > 10)
 			draw_player(p->player->y,	p->player->x,	sprPlayer[p->player->type],	sprMap[screen[p->player->y][p->player->x]],p->player->id-1,1, p->player->action);

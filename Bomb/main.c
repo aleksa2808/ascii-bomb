@@ -19,7 +19,7 @@ void print_menu(WINDOW*, int, struct m_list);
 
 int main()
 {	FILE *dat;
-	WINDOW *menu_win;
+	WINDOW *menu_win, *num_win;
 	int highlight = 1;
 	int choice = 0;
 	int c,c2;
@@ -34,7 +34,9 @@ int main()
 	int wns;
 	int rep;
 	int tmp;
-	WINDOW *num_win;
+	struct ScoreList *slist = NULL, *s = NULL, *t, *p = NULL;
+	int i1, j1, chksum, sum, k1;
+	char ch, *pts;
 	srand(time(0));
 		
 	//configs
@@ -308,13 +310,8 @@ int main()
 						resize_term(50,100);
 						menu_start = clock();
 						break;
-					case 13:
-						act_menu=2;
-						ptr=0;
-						wclear(menu_win);
-						break;
 					case 11:
-						act_menu=3;
+						act_menu=2;
 						ptr=0;
 						wclear(menu_win);
 						break;
@@ -329,9 +326,98 @@ int main()
 						updConfigs();
 						break;
 					case 12:
-						act_menu=4;
+						act_menu=3;
 						ptr=0;
 						wclear(menu_win);
+						break;
+					case 30:
+						dat = fopen("data/highscores.txt", "r");
+						if (dat)
+						{
+							sum = 0;
+							for (i1 = 0; i1 < 10; i1++)
+							{
+								while ((ch = fgetc(dat)) != '\n')
+								{
+									sum += ch;
+								}
+							}
+							fscanf(dat, "%d", &chksum);
+
+							if (sum == chksum)
+							{
+								fseek(dat, 0, SEEK_SET);
+
+								// citanje liste
+								for (i1 = 0; i1 < 10; i1++)
+								{
+									t = (struct ScoreList*) malloc(sizeof(struct ScoreList));
+
+									while ((ch = fgetc(dat)) != ' ');
+
+									t->name = NULL;
+
+									j1 = 0;
+									while ((ch = fgetc(dat)) != ' ')
+									{
+										if (j1 % 10 == 0) t->name = realloc(t->name, (j1 + 10) * sizeof(char));
+										t->name[j1++] = ch;
+									}
+									if (j1 % 10 == 0) t->name = realloc(t->name, (j1 + 1) * sizeof(char));
+									t->name[j1] = '\0';
+
+									pts = NULL;
+
+									j1 = 0;
+									while ((ch = fgetc(dat)) != '\n')
+									{
+										if (j1 % 10 == 0) pts = realloc(pts, (j1 + 10) * sizeof(char));
+										pts[j1++] = ch;
+									}
+									if (j1 % 10 == 0) pts = realloc(pts, (j1 + 1) * sizeof(char));
+									pts[j1] = '\0';
+
+									t->points = atoi(pts);
+									t->next = NULL;
+
+									if (!s) slist = t;
+									else s->next = t;
+									s = t;
+								}
+							}
+							fclose(dat);
+						}
+						t=slist;
+						wclear(menu_win);
+						wattron(menu_win,COLOR_PAIR(24));
+						for (i=0;i<900;i++) wprintw(menu_win," ");
+						wattroff(menu_win,COLOR_PAIR(24));
+
+						
+						wattron(menu_win,COLOR_PAIR(129));
+						box(menu_win,0,0);
+						wattroff(menu_win,COLOR_PAIR(129));
+
+						wattron(menu_win,COLOR_PAIR(24));
+						mvwprintw(menu_win, 1, 14,"HIGH-SCORES");
+						for (i=1; i<=10; i++){
+							mvwprintw(menu_win, 2+i,1, "%d.\t%05d - %s",i,t?t->points:0, t?t->name:" ");
+							t=t->next;
+						}
+						wattroff(menu_win,COLOR_PAIR(24));
+						refresh();
+						do{
+							ch=wgetch(menu_win);
+						} while (ch!=10	&&	ch!=32);
+						wclear(menu_win);
+						wattron(menu_win,COLOR_PAIR(24));
+						for (i=0;i<900;i++) wprintw(menu_win," ");
+						wattroff(menu_win,COLOR_PAIR(24));
+
+						
+						wattron(menu_win,COLOR_PAIR(129));
+						box(menu_win,0,0);
+						wattroff(menu_win,COLOR_PAIR(129));
 						break;
 				}
 				break;

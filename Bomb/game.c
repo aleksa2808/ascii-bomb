@@ -89,6 +89,7 @@ void create_map(int level)
 			}
 		}
 	}
+	flushinp();
 }
 void spawn_exit(int level)
 {
@@ -1445,7 +1446,7 @@ int battle(int num_players, int num_bots, int req_wins, int difficulty)
 		else if (winner > 0) 
 		{
 			scores[winner - 1]++;
-			scoreboard(scores, num_players+num_bots);
+			scoreboard(scores, num_players+num_bots, winner);
 			if (scores[winner - 1] == req_wins)
 			{
 				// CHAMPION!

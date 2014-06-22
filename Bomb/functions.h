@@ -7,7 +7,7 @@
 
 void init_screen(int, int, int);
 void draw(char**, struct BombList*, struct PlayerList*);
-void scoreboard(int *, int);
+void scoreboard(int *, int, int);
 void update_hud(int, char*, int);
 void del_stuff(void);
 

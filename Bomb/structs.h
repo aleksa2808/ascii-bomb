@@ -8,7 +8,7 @@
 
 // 1000 = 1sec // never below 100!
 // 600 is ok :D
-#define TIME_SLICE 100
+#define TIME_SLICE 1000
 
 #define MAP_SPRITE_NUM 20
 

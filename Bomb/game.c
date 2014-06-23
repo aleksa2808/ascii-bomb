@@ -156,7 +156,7 @@ void spawn(int id, Player *player, int y, int x)
 	}
 	
 	strcpy(player->gene, "000000000000000000000000000000000000000000000000000000000000"); // CHROMO_LENGTH!!!
-	strcpy(player->code, "03265417"); // subject to change
+	strcpy(player->code, "03614257"); // subject to change
 }
 void player_queue(Player *player)
 {
@@ -1197,7 +1197,7 @@ int campaign(void)
 	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 	
 	mode = 1, m = 11, n = 15, per = 50, difficulty = 2;
-	lives = 5, bombs = 5, range = 5, powers = 0, health = 1, points = 0;
+	lives = 5, bombs = 1, range = 1, powers = 0, health = 1, points = 0;
 
 	init_screen(m, n, 1);
 	create_map(level);

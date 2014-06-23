@@ -156,7 +156,7 @@ void spawn(int id, Player *player, int y, int x)
 	}
 	
 	strcpy(player->gene, "000000000000000000000000000000000000000000000000000000000000"); // CHROMO_LENGTH!!!
-	strcpy(player->code, "01234567");
+	strcpy(player->code, "03265417"); // subject to change
 }
 void player_queue(Player *player)
 {
@@ -1192,12 +1192,12 @@ int campaign(void)
 {
 	/* ~Initialization~ */
     int ch, level = 1, win;
-	bool running;
+	bool running, end = FALSE;
 	
 	blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 	
 	mode = 1, m = 11, n = 15, per = 50, difficulty = 2;
-	lives = 5, bombs = 1, range = 1, powers = 0, health = 1, points = 0;
+	lives = 5, bombs = 5, range = 5, powers = 0, health = 1, points = 0;
 
 	init_screen(m, n, 1);
 	create_map(level);
@@ -1275,6 +1275,7 @@ int campaign(void)
 			if (level == 16)
 			{
 				points += 2000;
+				end = TRUE;
 				// HUZZAH! GAME COMPLETE!
 				break;
 			}
@@ -1367,6 +1368,8 @@ int campaign(void)
 	
 	clear();
 	refresh();
+
+	if (end) fun();
     return 0;
 }
 int battle(int num_players, int num_bots, int req_wins, int diff)
@@ -1782,12 +1785,14 @@ int fun(void)
 	}
 
 	fclose(input);
+	
+	if (sdon) PlaySound(TEXT("sounds/what_is_f.wav"), NULL, SND_ASYNC | SND_FILENAME);
 
 	mode = 3;
 	
 	m = 9, n = 15, per = 0;
 	init_screen(m, n, arena);
-	j = 0;
+	j = -10;
 
 	running = TRUE;
 		
@@ -1796,6 +1801,7 @@ int fun(void)
 	create_map(-1);
 	init_players(1, 0);
 	plist_front->player->y = 4;
+	plist_front->player->x = 2;
 
 	draw(screen, blist_front, plist_front);
 
@@ -1810,10 +1816,9 @@ int fun(void)
 		switch (ch)
 		{
 		case 27:
+			if (sdon) PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
 			running = FALSE;
 			break;
-		case 10:
-			pause(&running);
 		}
 
 		plist_front->player->action = 0;
@@ -1835,52 +1840,7 @@ int fun(void)
 
 		if (plist_front->player->action) do_action(plist_front->player);
 
-		if (last_wave + speed <= iter_time)
-		{
-			for (i = 0; i < 7; i++)
-			{
-				if (mat[i][j] == '1')
-				{
-					screen[i + 1][13] = BOMB;
-
-					/* Enqueue bomb */
-					b = (struct BombList*) malloc(sizeof(struct BombList));
-					b->bomb = (Bomb*) malloc(sizeof(Bomb));
-					b->bomb->owner = NULL;
-					b->bomb->range = 3;
-					b->bomb->y = i + 1;
-					b->bomb->x = 13;
-					b->bomb->xdir = -1;
-					b->bomb->ydir = 0;
-					b->bomb->last_move = clock();
-					b->next = NULL;
-					if (blist_rear == NULL) 
-					{
-						blist_front = b;
-						b->prev = NULL;
-					}
-					else 
-					{
-						blist_rear->next = b;
-						b->prev = blist_rear;
-					}
-					blist_rear = b;
-				}
-			}
-		
-			if (++j == 90)
-			{
-				j = 0;
-				speed -= 50;
-				if (speed == 0) 
-				{
-					running = FALSE;
-					if (sdon) PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
-				}
-			}
-
-			last_wave = iter_time;
-		}
+		if (plist_front->player->immortal && plist_front->player->immortal_end < iter_time) plist_front->player->immortal = FALSE;
 
 		b = blist_front;
 		while (b != NULL)	
@@ -1908,10 +1868,57 @@ int fun(void)
 			else b = b->next;
 		}
 
+		if (last_wave + speed <= iter_time)
+		{
+			if (j >= 0)
+				for (i = 0; i < 7; i++)
+				{
+					if (mat[i][j] == '1')
+					{
+						screen[i + 1][13] = BOMB;
+
+						/* Enqueue bomb */
+						b = (struct BombList*) malloc(sizeof(struct BombList));
+						b->bomb = (Bomb*) malloc(sizeof(Bomb));
+						b->bomb->owner = NULL;
+						b->bomb->range = 3;
+						b->bomb->y = i + 1;
+						b->bomb->x = 13;
+						b->bomb->xdir = -1;
+						b->bomb->ydir = 0;
+						b->bomb->last_move = clock();
+						b->next = NULL;
+						if (blist_rear == NULL) 
+						{
+							blist_front = b;
+							b->prev = NULL;
+						}
+						else 
+						{
+							blist_rear->next = b;
+							b->prev = blist_rear;
+						}
+						blist_rear = b;
+					}
+				}
+		
+			if (++j == 90)
+			{
+				j = 0;
+				plist_front->player->id++;
+				plist_front->player->immortal = TRUE;
+				plist_front->player->immortal_end = iter_time + 2 * TIME_SLICE;
+				speed -= 30;
+				if (speed < 0) speed = 0;
+			}
+
+			last_wave = iter_time;
+		}
+
 		/* Game over? */
 		if (screen[plist_front->player->y][plist_front->player->x] == BOMB) 
 		{
-			PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
+			if (sdon) PlaySound(TEXT("sounds/boom.wav"), NULL, SND_ASYNC | SND_FILENAME);
 			
 			b = blist_front;
 			while (b != NULL)	

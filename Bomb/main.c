@@ -168,13 +168,6 @@ int main()
 				if (ptr==choices[act_menu].num-1) ptr = 0;
 				else ptr++;
 				break;
-			case 'f':
-				clear();
-				refresh();
-				fun();
-				resize_term(50,100);
-				menu_start = clock();
-				break;
 			case ' ': case 10:
 				if(sdon) PlaySound(TEXT("sounds/confirm.wav"), NULL, SND_ASYNC | SND_FILENAME);
 				switch(choices[act_menu].men[ptr].id){
@@ -204,7 +197,7 @@ int main()
 						plr=1;
 						bts=3;
 						wns=3;
-						dif=1;
+						dif=2;
 						while (rep==1){
 							wclear(num_win);
 							
@@ -234,6 +227,7 @@ int main()
 									break;
 								case 27:
 									rep=-1;
+									menu_start = clock();
 									break;
 								}
 						Sleep(20);
@@ -316,7 +310,7 @@ int main()
 							wattron(num_win,COLOR_PAIR(24));
 							for (i=0;i<200;i++) wprintw(num_win," ");
 							mvwprintw(num_win,2,2,"DIFFICULTY:");
-							mvwprintw(num_win, 3,2,"%c %d %c", 0xAE, dif, 0xAF);
+							mvwprintw(num_win, 3,2,"%c %s %c", 0xAE, dif == 1 ? "EASY" : dif == 2 ? "MEDIUM" : "HARD", 0xAF);
 							wattroff(num_win,COLOR_PAIR(24));
 
 							wattron(num_win,COLOR_PAIR(129));
@@ -423,6 +417,13 @@ int main()
 					case 51:
 						do {
 							ch=wgetch(menu_win);
+							if (ch == 'f')
+							{
+								clear();
+								refresh();
+								fun();
+								resize_term(50,100);
+							}
 							print_menu(menu_win,ptr,choices[act_menu],0);
 							wclear(menu_win);
 							wattron(menu_win,COLOR_PAIR(24));
@@ -441,6 +442,7 @@ int main()
 							mvwprintw(menu_win,5,2,"G Key\t\t- P2 bomb set");
 							mvwprintw(menu_win,6,2,"Enter Key\t- Pause");
 							mvwprintw(menu_win,7,2,"ESC Key\t- Back");
+							mvwprintw(menu_win,12,2,"F Key\t- ???");
 							wattroff(menu_win,COLOR_PAIR(24));
 
 							wattron(menu_win,COLOR_PAIR(129));
@@ -453,7 +455,7 @@ int main()
 						wattron(menu_win,COLOR_PAIR(24));
 						for (i=0;i<900;i++) wprintw(menu_win," ");
 						wattroff(menu_win,COLOR_PAIR(24));
-
+						menu_start = clock();
 						break;
 					case 52:
 						do {
@@ -487,7 +489,7 @@ int main()
 						wattron(menu_win,COLOR_PAIR(24));
 						for (i=0;i<900;i++) wprintw(menu_win," ");
 						wattroff(menu_win,COLOR_PAIR(24));
-
+						menu_start = clock();
 						break;
 					
 					case 30:
@@ -588,7 +590,8 @@ int main()
 						wattron(menu_win,COLOR_PAIR(129));
 						box(menu_win,0,0);
 						wattroff(menu_win,COLOR_PAIR(129));
-
+						
+						menu_start = clock();
 						break;
 				}
 				break;

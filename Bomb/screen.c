@@ -263,8 +263,14 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 	wattron (hud_win,COLOR_PAIR(15*16));
 	if (mode != 3) mvwprintw(hud_win, 6, COLS / 2 - 3, "%02d:%02d", ((time_end - iter_time) / 1000) / 60, ((time_end - iter_time) / 1000) % 60);
 	if (gen > 0) wprintw(hud_win, "  Gen: %d / Fattest: %s, ate %d of pie.", gen, fittest, hp);
+	if (mode == 3)
+	{
+		mvwprintw(hud_win, 3, COLS / 2 - 20, "Hope you had fun with this little game! ^_^");
+		mvwprintw(hud_win, 5, COLS / 2 + 10, "Now RUN!");
+	}
 
 	wattroff (hud_win, COLOR_PAIR(15*16));
+	
 	
 	i=0;
 
@@ -279,7 +285,7 @@ void draw(char **screen, struct BombList *b, struct PlayerList *p)
 		else
 			draw_player(p->player->y,	p->player->x,	sprPlayer[p->player->type],	sprMap[screen[p->player->y][p->player->x]],p->player->id-1,0, p->player->action);
 		// HUD player drawing
-		if (p->player->type == 0) draw_hudp(sprPlayer[0],p->player->id);
+		if (p->player->type == 0 && mode != 3) draw_hudp(sprPlayer[0],p->player->id);
 		p = p->next;
 	}
 	

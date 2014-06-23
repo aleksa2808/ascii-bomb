@@ -675,7 +675,6 @@ void bot_action(Player *current_bot, int diff)
 	while ((com = commands[i++]) != '\0' && !bot->action)
 	{
 		// miss?
-		//if (rand() % 100 < 20) com = rand() % 8 + '0';
 		switch (diff)
 		{
 		case 1:

@@ -573,6 +573,13 @@ int main()
 							Sleep(20);
 						} while (ch!=10	&&	ch!=32 && ch!=27);
 
+						t=slist;
+						while (t){
+							p=t->next;
+							free(t);
+							t=p;
+						}
+						slist=p=s=t=NULL;
 						wclear(menu_win);
 						wattron(menu_win,COLOR_PAIR(24));
 						for (i=0;i<900;i++) wprintw(menu_win," ");

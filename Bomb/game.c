@@ -238,7 +238,7 @@ void init_players(int num_players, int num_bots)
 }
 void init_mobs(int level)
 {
-	int i, j, dir, mob_num = level % 5 + 2;
+	int i, j, dir, mob_num = level % 5 + 2 + level / 5;
 	Player *player;
 	int x[8] = {n - 4, n - 2, 11, 5, 1, n - 8}, y[8] = {m - 8, 1, m - 2, m - 6, 9, 3};
 	int bias = rand() % 20;
@@ -248,7 +248,7 @@ void init_mobs(int level)
 		player = (Player*) malloc(sizeof(Player));
 		player_queue(player);
 		player->id = i + 2;
-		player->type = i > 4 ? 2 : 1;
+		player->type = i > 4 ? i > 6 ? 3 : 2 : 1;
 		player->y = y[(i + bias) % 6];
 		player->x = x[(i + bias) % 6];
 		if (dir = rand() % 2)
@@ -285,7 +285,8 @@ void init_mobs(int level)
 		player->bombs = 0;
 		player->bomb_range = 0;
 		player->immortal = FALSE;
-		player->powers = 0;
+		if (player->type == 3) player->powers = 0x10;
+		else player->powers = 0;
 		player->last_move = 0;
 		player->action = 0;
 		if (dir)
@@ -1236,6 +1237,10 @@ int campaign(void)
 				break;
 			case 10:
 				pause(&running);
+				break;
+			case 'f':
+				running = FALSE;
+				win = 1;
 			}
 			
 			player_action(ch, 1, level % 5 == 0);
@@ -1264,12 +1269,10 @@ int campaign(void)
 		else if (win) 
 		{
 			points += ((time_end - iter_time) / TIME_SLICE) * 5; // 5pts/sec
-			free_stuff();
 
 			level++;
-			//transition();
 
-			if (level == 21)
+			if (level == 2)
 			{
 				points += 2000;
 				// HUZZAH! GAME COMPLETE!
@@ -1277,6 +1280,8 @@ int campaign(void)
 			}
 			else
 			{
+				free_stuff();
+
 				blist_front = NULL, blist_rear = NULL, plist_front = NULL, plist_rear = NULL, flist_front = NULL, flist_rear = NULL;
 				
 				if (level == 6) 
@@ -1284,8 +1289,11 @@ int campaign(void)
 					del_stuff();
 					init_screen(m, n, 2);
 				}
-				//if (level == 11) init_screen(m, n, 3);
-				//if (level == 16) init_screen(m, n, 4);
+				if (level == 11)
+				{
+					del_stuff();
+					init_screen(m, n, 3);
+				}
 				create_map(level);
 			
 				// Boss?
@@ -1361,16 +1369,16 @@ int campaign(void)
 	refresh();
     return 0;
 }
-int battle(int num_players, int num_bots, int req_wins, int difficulty)
+int battle(int num_players, int num_bots, int req_wins, int diff)
 {
     /* ~Initialization~ */
-    int ch, winner, arena = rand() % 2 + 1;
+    int ch, winner, arena = rand() % 3 + 1;
 	bool running;
 
 	int *scores = (int*) calloc(num_players + num_bots, sizeof(int));
 
 	mode = 2;
-	difficulty = 2;
+	difficulty = diff;
 	
 	if (num_players + num_bots > 4) m = 13, n = 17, per = 80;
 	else m = 11, n = 15, per = 60;
@@ -1579,7 +1587,7 @@ int training_area(void)
 	float total_fitness;
 	char offspring1[CHROMO_LENGTH + 1], offspring2[CHROMO_LENGTH + 1], population[POP_SIZE][CHROMO_LENGTH + 1], temp[POP_SIZE][CHROMO_LENGTH + 1], fittest[(CHROMO_LENGTH / GENE_LENGTH) + 1];
 
-    int ch, arena = rand() % 2 + 1, winner, tasty_pie = fact(POP_SIZE), slice_o_pie;
+    int ch, arena = rand() % 3 + 1, winner, tasty_pie = fact(POP_SIZE), slice_o_pie;
 	bool running;
 	struct PlayerList *p;
 
@@ -1925,7 +1933,6 @@ int fun(void)
 	}
 
 	/* Game over */
-	// transition();
 	free_stuff();
 
 	del_stuff();

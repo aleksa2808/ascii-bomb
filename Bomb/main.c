@@ -518,10 +518,10 @@ int main()
 									j1 = 0;
 									while ((ch = fgetc(dat)) != ' ')
 									{
-										if (j1 % 10 == 0) t->name = realloc(t->name, (j1 + 10) * sizeof(char));
+										if (j1 % 10 == 0) t->name = (char*) realloc(t->name, (j1 + 10) * sizeof(char));
 										t->name[j1++] = ch;
 									}
-									if (j1 % 10 == 0) t->name = realloc(t->name, (j1 + 1) * sizeof(char));
+									if (j1 % 10 == 0) t->name = (char*) realloc(t->name, (j1 + 1) * sizeof(char));
 									t->name[j1] = '\0';
 
 									pts = NULL;
@@ -529,10 +529,10 @@ int main()
 									j1 = 0;
 									while ((ch = fgetc(dat)) != '\n')
 									{
-										if (j1 % 10 == 0) pts = realloc(pts, (j1 + 10) * sizeof(char));
+										if (j1 % 10 == 0) pts = (char*) realloc(pts, (j1 + 10) * sizeof(char));
 										pts[j1++] = ch;
 									}
-									if (j1 % 10 == 0) pts = realloc(pts, (j1 + 1) * sizeof(char));
+									if (j1 % 10 == 0) pts = (char*) realloc(pts, (j1 + 1) * sizeof(char));
 									pts[j1] = '\0';
 
 									t->points = atoi(pts);
@@ -560,9 +560,9 @@ int main()
 							wattroff(menu_win,COLOR_PAIR(129));
 
 							wattron(menu_win,COLOR_PAIR(24));
-							mvwprintw(menu_win, 1, 14,"HIGH-SCORES");
+							mvwprintw(menu_win, 2, 14,"HIGH-SCORES");
 							for (i=1; i<=10; i++){
-								mvwprintw(menu_win, 2+i,1, "%2d. %5d - %s",i,t?t->points:0, t?t->name:" ");
+								mvwprintw(menu_win, 3+i,1, " %2d. %-20s     %5d", i, t?t->name:" ", t?t->points:0);
 								if (t) t=t->next;
 							}
 							wattron(menu_win,COLOR_PAIR(129));

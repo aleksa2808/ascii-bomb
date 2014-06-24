@@ -240,7 +240,7 @@ void init_mobs(int level)
 {
 	int i, j, dir, mob_num = level % 5 + 2 + level / 5;
 	Player *player;
-	int x[8] = {n - 4, n - 2, 11, 5, 1, n - 8, n - 6, 7}, y[8] = {m - 8, 1, m - 2, m - 6, 9, 3, m - 4, 7};
+	int x[8] = {n - 4, n - 2, 11, 5, 1, n - 6, n - 6, 7}, y[8] = {m - 8, 1, m - 2, m - 6, 9, 5, m - 4, 7};
 	int bias = rand() % 20;
 
 	for (i = 0; i < mob_num; i++)
@@ -1321,6 +1321,8 @@ int campaign(void)
 				init_mobs(level);
 				spawn_exit(level);
 				draw(screen, blist_front, plist_front);
+
+				if (level % 5 == 0) story_time(level / 5);
 	
 				time_end = clock() + STORY_TIME * TIME_SLICE;
 			}

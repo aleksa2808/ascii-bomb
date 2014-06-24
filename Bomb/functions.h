@@ -10,7 +10,7 @@ void draw(char**, struct BombList*, struct PlayerList*);
 void scoreboard(int *, int, int);
 void update_hud(int, char*, int);
 void del_stuff(void);
-
+void story_time(int);
 
 
 void boom(int y, int x, int range);

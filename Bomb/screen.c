@@ -4,7 +4,7 @@
 #include <Windows.h>
 #include "structs.h"
 #include "functions.h"
-WINDOW *game_win, *hud_win;
+WINDOW *game_win, *hud_win, *story_win;
 
 
 int fusecol=12;
@@ -42,7 +42,6 @@ void init_screen(int mm, int nn, int arena_id)
     nodelay(game_win, TRUE);
         
     hud_win = newwin(7, COLS, 0, 0);
-    box(hud_win, 0, 0);
 	wrefresh(hud_win);
 
 	/*Reading the sprites*/
@@ -387,4 +386,127 @@ void scoreboard(int *scores, int num, int winner){
 	refresh();
 	Sleep(1500);
 	flushinp();
+}
+
+void portrait(int ID)
+{
+	int i,j,col1,col2;
+	
+	static int playercolor[10]= {15, 14, 13, 12, 11, 10, 9, 2};
+
+	Sprite spr = sprPlayer[0];
+
+	for (i=4;i < 12 ;i++){
+		wattron(story_win,COLOR_PAIR(128));
+		mvwprintw(story_win, 0, i, "%c", 0xDC);
+		mvwprintw(story_win,5,i,"%c", 0xDF);
+		wattroff(story_win, COLOR_PAIR(128));
+	}
+	for (i=1;i<5;i++){
+		wattron(story_win,COLOR_PAIR(128));
+		mvwprintw(story_win, i,4, "%c",0xDB);
+		mvwprintw(story_win,i,11,"%c",0xDB);
+		wattroff(story_win, COLOR_PAIR(128));
+	}
+		for (i=0;i<4;i++)
+			for (j=0;j<6;j++) {
+					if (spr.col1[ i ][ j ]==16)
+						col1 = 3;
+					else if (spr.col1[ i ][ j ]==17)
+						col1 = playercolor[ID-1];
+						else col1 = spr.col1[ i ][ j ];
+
+					if (spr.col2[ i ][ j ]==16)
+						col2 = 3;
+					else if (spr.col2[ i ][ j ]==17)
+						col2 = playercolor[ID-1];
+						else col2 = spr.col2[ i ][ j ];
+					
+
+					wattron(story_win,COLOR_PAIR(col1*16+col2));
+					mvwprintw(story_win, i+1, j + 5,"%c",(col1==0&&col2==0)?' ':spr.ch[i][ j ]);
+					wattroff(story_win,COLOR_PAIR(col1*16+col2));
+				}
+}
+void story_time(int boss)
+{
+	int i;
+	char ch, *text;
+	bool skip = FALSE;
+
+	story_win = newwin(7, COLS, 0, 0);
+	nodelay(story_win, TRUE);
+	box(story_win, 0, 0);
+	
+	switch (boss)
+	{
+	case 1:
+		// boss 1
+		portrait(boss + 4);
+		text = "So, we meet again! nenexexedadada! ";
+		for (i = 0; text[i] != '\0'; i++)
+		{
+			mvwprintw(story_win, 3, 16 + i, "%c", text[i]);
+			if ((ch = wgetch(story_win)) == ' ') skip = TRUE;
+			if (!skip)
+				if (i == 3 || i == 18) Sleep(500);
+				else Sleep(50);
+		}
+		skip = FALSE;		
+
+		while ((ch = wgetch(story_win)) != ' ');
+		
+		// player
+		portrait(1);
+		mvwprintw(story_win, 3, 16, "Kojicu? Zar i ovde?!                ");
+		
+		while ((ch = wgetch(story_win)) != ' ');
+		
+		// boss 1
+		portrait(boss + 4);
+		mvwprintw(story_win, 3, 16, "muexexexexexe!                       ");
+		
+		while ((ch = wgetch(story_win)) != ' ');
+		break;
+	case 2:
+		// boss 2
+		portrait(boss + 4);
+		mvwprintw(story_win, 3, 16, "JO SOJ TU PADRE! ");
+		
+		while ((ch = wgetch(story_win)) != ' ');
+		
+		// player
+		portrait(1);
+		mvwprintw(story_win, 3, 16, "NOOOOOOO!... wait... hm.. you're right... :/ ");
+		
+		while ((ch = wgetch(story_win)) != ' ');
+		break;
+	case 3:
+		// boss 3
+		portrait(boss + 4);
+		mvwprintw(story_win, 3, 16, "Sure hope Dusan will come up with something wittier... ");
+		
+		while ((ch = wgetch(story_win)) != ' ');
+		
+		// player
+		portrait(1);
+		mvwprintw(story_win, 3, 16, "Yeap... :/                                             ");
+		
+		while ((ch = wgetch(story_win)) != ' ');
+		
+		// boss 3
+		portrait(boss + 4);
+		mvwprintw(story_win, 3, 16, "Wanna fight?                                           ");
+		
+		while ((ch = wgetch(story_win)) != ' ');
+		
+		// player
+		portrait(1);
+		mvwprintw(story_win, 3, 16, "k                                                      ");
+		
+		while ((ch = wgetch(story_win)) != ' ');
+		break;
+	}
+
+	delwin(story_win);
 }

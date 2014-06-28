@@ -428,12 +428,26 @@ void portrait(int ID)
 					wattroff(story_win,COLOR_PAIR(col1*16+col2));
 				}
 }
-void story_time(int boss)
+void speak(WINDOW *story_win, int id, char *text)
 {
 	int i;
-	char ch, *text;
+	char ch;
 	bool skip = FALSE;
+	
+	portrait(id);
+	mvwprintw(story_win, 3, 16, "                                                                  ");
+	for (i = 0; text[i] != '\0'; i++)
+	{
+		mvwprintw(story_win, 3, 16 + i, "%c", text[i]);
+		if ((ch = wgetch(story_win)) == ' ') skip = TRUE;
+		if (!skip) Sleep(20);
+	}	
 
+	while ((ch = wgetch(story_win)) != ' ');
+}
+void story_time(int boss)
+{
+	int boss_id = boss + 4, player_id = 1;
 	story_win = newwin(7, COLS, 0, 0);
 	nodelay(story_win, TRUE);
 	box(story_win, 0, 0);
@@ -441,70 +455,23 @@ void story_time(int boss)
 	switch (boss)
 	{
 	case 1:
-		// boss 1
-		portrait(boss + 4);
-		text = "So, we meet again! nenexexedadada! ";
-		for (i = 0; text[i] != '\0'; i++)
-		{
-			mvwprintw(story_win, 3, 16 + i, "%c", text[i]);
-			if ((ch = wgetch(story_win)) == ' ') skip = TRUE;
-			if (!skip)
-				if (i == 3 || i == 18) Sleep(500);
-				else Sleep(50);
-		}
-		skip = FALSE;		
-
-		while ((ch = wgetch(story_win)) != ' ');
-		
-		// player
-		portrait(1);
-		mvwprintw(story_win, 3, 16, "Kojicu? Zar i ovde?!                ");
-		
-		while ((ch = wgetch(story_win)) != ' ');
-		
-		// boss 1
-		portrait(boss + 4);
-		mvwprintw(story_win, 3, 16, "muexexexexexe!                       ");
-		
-		while ((ch = wgetch(story_win)) != ' ');
+		speak(story_win, boss_id, "You will never reach the north alive!"); 
+		speak(story_win, player_id, "Penguins can talk in this game? Cooooool!"); 
+		speak(story_win, boss_id, "Prepare to die!"); 
 		break;
 	case 2:
-		// boss 2
-		portrait(boss + 4);
-		mvwprintw(story_win, 3, 16, "JO SOJ TU PADRE! ");
-		
-		while ((ch = wgetch(story_win)) != ' ');
-		
-		// player
-		portrait(1);
-		mvwprintw(story_win, 3, 16, "NOOOOOOO!... wait... hm.. you're right... :/ ");
-		
-		while ((ch = wgetch(story_win)) != ' ');
+		speak(story_win, boss_id, "How did you manage to get here?"); 
+		speak(story_win, player_id, "Dunno, killed some guys, went through some doors..."); 
+		speak(story_win, player_id, "That kind of stuff..."); 
+		speak(story_win, boss_id, "Ugh, those fools!"); 
+		speak(story_win, boss_id, "Well, your journey stops here, you will never find the cloud city!"); 
+		speak(story_win, player_id, "A cloud city? Nice, was getting kind of bored with this theme..."); 
 		break;
 	case 3:
-		// boss 3
-		portrait(boss + 4);
-		mvwprintw(story_win, 3, 16, "Sure hope Dusan will come up with something wittier... ");
-		
-		while ((ch = wgetch(story_win)) != ' ');
-		
-		// player
-		portrait(1);
-		mvwprintw(story_win, 3, 16, "Yeap... :/                                             ");
-		
-		while ((ch = wgetch(story_win)) != ' ');
-		
-		// boss 3
-		portrait(boss + 4);
-		mvwprintw(story_win, 3, 16, "Wanna fight?                                           ");
-		
-		while ((ch = wgetch(story_win)) != ' ');
-		
-		// player
-		portrait(1);
-		mvwprintw(story_win, 3, 16, "k                                                      ");
-		
-		while ((ch = wgetch(story_win)) != ' ');
+		speak(story_win, boss_id, "Ah, I have been expecting you Agent P!"); 
+		speak(story_win, player_id, "Who even wrote these stupid dialogues?"); 
+		speak(story_win, boss_id, "nenexexedadada!"); 
+		speak(story_win, player_id, "Let's just get this over with..."); 
 		break;
 	}
 

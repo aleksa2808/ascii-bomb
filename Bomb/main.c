@@ -37,7 +37,8 @@ int main()
 	int tmp;
 	int dif;
 	struct ScoreList *slist = NULL, *s = NULL, *t, *p = NULL;
-	int i1, j1, chksum, sum, k1;
+	int i1, j1, k1;
+	long int chksum, sum;
 	char ch, *pts;
 	srand(time(0));
 		
@@ -497,11 +498,13 @@ int main()
 						if (dat)
 						{
 							sum = 0;
+							j = 1;
 							for (i1 = 0; i1 < 10; i1++)
 							{
 								while ((ch = fgetc(dat)) != '\n')
 								{
-									sum += ch;
+									sum += ch * j;;
+									j++;
 								}
 							}
 							fscanf(dat, "%d", &chksum);

@@ -1013,7 +1013,8 @@ void update_scores(void)
 	WINDOW *input_win;
 	FILE *high_scores;
 	struct ScoreList *slist = NULL, *s = NULL, *t, *p = NULL;
-	int i, j, chksum, sum, k;
+	int i, j, k;
+	long int chksum, sum;
 	char ch, *pts;
 
 	// da li neko vara? :)
@@ -1021,11 +1022,13 @@ void update_scores(void)
 	if (high_scores)
 	{
 		sum = 0;
+		j = 1;
 		for (i = 0; i < 10; i++)
 		{
 			while ((ch = fgetc(high_scores)) != '\n')
 			{
-				sum += ch;
+				sum += ch * j;
+				j++;
 			}
 		}
 		fscanf(high_scores, "%d", &chksum);
@@ -1135,11 +1138,13 @@ void update_scores(void)
 	
 	high_scores = freopen("data/highscores.txt", "r", high_scores);
 	sum = 0;
+	j = 1;
 	for (i = 0; i < 10; i++)
 	{
 		while ((ch = fgetc(high_scores)) != '\n')
 		{
-			sum += ch;
+			sum += ch * j;
+			j++;
 		}
 	}
 

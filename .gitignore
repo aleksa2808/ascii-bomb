@@ -1,0 +1,6 @@
+# VS 2017
+.vs/
+Debug/
+
+# VS Code
+.vscode/

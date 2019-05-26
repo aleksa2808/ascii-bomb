@@ -1,4 +1,4 @@
-# ~Bomberman~
+# \~Bomberman\~
 
 This is a remake of the classic franchise done in C using ASCII graphics and ncurses library.
 
@@ -15,6 +15,6 @@ The project was made for a freshman year class by a group of three students.
 
 *Screenshots of Battle mode:*
 
-![Untitled.png](https://bitbucket.org/repo/rMzeLn/images/2854773299-Untitled.png)
+![Battle Mode screenshot #1](../assets/battlemode1.png?raw=true)
 
-![Untitled1.png](https://bitbucket.org/repo/rMzeLn/images/1130947728-Untitled1.png)
+![Battle Mode screenshot #2](../assets/battlemode2.png?raw=true)

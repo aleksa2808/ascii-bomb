@@ -1,6 +1,6 @@
 # \~Bomberman\~
 
-This is a remake of the classic franchise done in C using ASCII graphics and ncurses library.
+This is a remake of the classic franchise done in C using ASCII graphics with the pdcurses library.
 
 The game features 2 modes:
 
@@ -12,12 +12,12 @@ The project was made for a freshman year class by a group of three students.
 
 
 
-
 *Screenshots of Battle mode:*
 
 ![Battle Mode screenshot #1](../assets/battlemode1.png?raw=true)
 
 ![Battle Mode screenshot #2](../assets/battlemode2.png?raw=true)
+
 
 
 # Installation

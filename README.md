@@ -18,3 +18,9 @@ The project was made for a freshman year class by a group of three students.
 ![Battle Mode screenshot #1](../assets/battlemode1.png?raw=true)
 
 ![Battle Mode screenshot #2](../assets/battlemode2.png?raw=true)
+
+
+# Installation
+
+The game currently only runs on Windows, and was built using Visual Studio 2010 (most recently tested using VS2017). 
+From there, it can be compiled out-of-the-box as the required pdcurses lib is already compiled and included.

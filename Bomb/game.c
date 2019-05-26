@@ -1773,7 +1773,7 @@ int training_area(void)
 int fun(void)
 {
 	/* ~Initialization~ */
-    int i, j, ch, arena = rand() % 3 + 1, last_wave = 0, speed = 250;
+    int i, j, ch, arena = rand() % 3 + 1, last_wave = 0, speed = 250, last_move = 0;
 	bool running;
 
 	struct BombList *b, *bb;
@@ -1849,10 +1849,10 @@ int fun(void)
 
 		if (plist_front->player->immortal && plist_front->player->immortal_end < iter_time) plist_front->player->immortal = FALSE;
 
-		b = blist_front;
-		while (b != NULL)	
-		{
-			if ((b->bomb->ydir || b->bomb->xdir) && b->bomb->last_move + speed <= iter_time)
+		/* Move all bombs at once */
+		if (last_move + speed <= iter_time) {
+			b = blist_front;
+			while (b != NULL)
 			{
 				switch (screen[b->bomb->y + b->bomb->ydir][b->bomb->x + b->bomb->xdir])
 				{
@@ -1861,7 +1861,6 @@ int fun(void)
 					b->bomb->y += b->bomb->ydir;
 					b->bomb->x += b->bomb->xdir;
 					screen[b->bomb->y][b->bomb->x] = BOMB;
-					b->bomb->last_move = iter_time;
 					b = b->next;
 					break;
 				case STONE_WALL:
@@ -1872,7 +1871,7 @@ int fun(void)
 					break;
 				}
 			}
-			else b = b->next;
+			last_move = iter_time;
 		}
 
 		if (last_wave + speed <= iter_time)
@@ -1893,7 +1892,6 @@ int fun(void)
 						b->bomb->x = 13;
 						b->bomb->xdir = -1;
 						b->bomb->ydir = 0;
-						b->bomb->last_move = clock();
 						b->next = NULL;
 						if (blist_rear == NULL) 
 						{

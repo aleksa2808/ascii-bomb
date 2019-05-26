@@ -60,7 +60,7 @@ int main()
 	i=0;
 	while (i<menu_size){
 		fscanf(dat,"%d%d", &choices[i].num,&choices[i].ret);
-		choices[i].men = (smth*) malloc (sizeof(smth));
+		choices[i].men = (smth*) malloc (choices[i].num*sizeof(smth));
 		for (j=0; j< choices[i].num; j++){
 			fscanf(dat,"%d", &choices[i].men[j].id);
 			dumpch = getc(dat);
